@@ -1,0 +1,26 @@
+name: media
+description: A new Flutter package project.
+version: 0.0.1
+homepage:
+publish_to: none
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+    
+  core:
+    path: ../../core
+  concrete:
+    path: ../../concrete
+  media_video:
+    path: ../media_video
+  media_audio:
+    path: ../media_audio
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
