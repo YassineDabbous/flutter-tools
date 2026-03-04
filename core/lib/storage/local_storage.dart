@@ -3,11 +3,59 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:core/core.dart';
 import 'package:flutter/foundation.dart';
 
+/// Interface for type adapters to handle complex types in SharedPreferences.
+abstract class PrefAdapter<T> {
+  Future<void> write(SharedPreferences prefs, String key, T value);
+  T? read(SharedPreferences prefs, String key);
+}
+
+class _StringAdapter extends PrefAdapter<String> {
+  @override
+  Future<void> write(SharedPreferences prefs, String key, String value) => prefs.setString(key, value);
+  @override
+  String? read(SharedPreferences prefs, String key) => prefs.getString(key);
+}
+
+class _IntAdapter extends PrefAdapter<int> {
+  @override
+  Future<void> write(SharedPreferences prefs, String key, int value) => prefs.setInt(key, value);
+  @override
+  int? read(SharedPreferences prefs, String key) => prefs.getInt(key);
+}
+
+class _BoolAdapter extends PrefAdapter<bool> {
+  @override
+  Future<void> write(SharedPreferences prefs, String key, bool value) => prefs.setBool(key, value);
+  @override
+  bool? read(SharedPreferences prefs, String key) => prefs.getBool(key);
+}
+
+class _DoubleAdapter extends PrefAdapter<double> {
+  @override
+  Future<void> write(SharedPreferences prefs, String key, double value) => prefs.setDouble(key, value);
+  @override
+  double? read(SharedPreferences prefs, String key) => prefs.getDouble(key);
+}
+
+class _StringListAdapter extends PrefAdapter<List<String>> {
+  @override
+  Future<void> write(SharedPreferences prefs, String key, List<String> value) => prefs.setStringList(key, value);
+  @override
+  List<String>? read(SharedPreferences prefs, String key) => prefs.getStringList(key);
+}
+
+class _JsonMapAdapter extends PrefAdapter<Map<String, dynamic>> {
+  @override
+  Future<void> write(SharedPreferences prefs, String key, Map<String, dynamic> value) => prefs.setString(key, jsonEncode(value));
+  @override
+  Map<String, dynamic>? read(SharedPreferences prefs, String key) {
+    final s = prefs.getString(key);
+    return s == null ? null : jsonDecode(s) as Map<String, dynamic>;
+  }
+}
+
 /// A helper class for managing local data persistence using SharedPreferences.
-///
-/// Note: [init] must be called once at app startup before any get/set operations.
 class SharedPrefHelper {
-  // --- Constant Keys ---
   static const _selectedTheme = "selectedTheme";
   static const _selectedLanguage = "selectedLanguage";
   static const _selectedFont = "selectedFont";
@@ -16,168 +64,83 @@ class SharedPrefHelper {
 
   late SharedPreferences preferences;
 
+  final Map<Type, PrefAdapter> _adapters = {
+    String: _StringAdapter(),
+    int: _IntAdapter(),
+    bool: _BoolAdapter(),
+    double: _DoubleAdapter(),
+    List<String>: _StringListAdapter(),
+    Map<String, dynamic>: _JsonMapAdapter(),
+  };
+
   SharedPrefHelper();
 
-  /// Initializes the SharedPreferences instance.
-  /// This must be called at the application startup (e.g., in `main`).
   Future<void> init() async {
     preferences = await SharedPreferences.getInstance();
   }
 
-  //
-  //
-  // ------------------------- Generic Persistence Helpers -------------------------
-  //
-  //
+  bool containsKey(String key) => preferences.containsKey(key);
 
-  bool containsKey(String key) {
-    return preferences.containsKey(key);
-  }
+  Future<bool> remove(String key) => preferences.remove(key);
 
-  Future<bool> remove(String key) async {
-    return await preferences.remove(key);
-  }
+  Future<bool> clear() => preferences.clear();
 
-  Future<bool> clear() async {
-    return await preferences.clear();
-  }
-
-  /// Retrieves a value of a specific type `T`.
-  ///
-  /// Supports primitive types (`String`, `int`, `double`, `bool`, `List<String>`) directly.
-  /// For complex types like `Map` or `List`, it assumes the value was stored as a JSON string and attempts to decode it.
   T? get<T>(String key) {
-    // Check for standard SharedPreferences types first.
-    // We use `T == Type` because T is a Type object at this point.
-    if (T == String) {
-      return preferences.getString(key) as T?;
+    final adapter = _adapters[T];
+    if (adapter != null) {
+      return (adapter as PrefAdapter<T>).read(preferences, key);
     }
-    if (T == int) {
-      return preferences.getInt(key) as T?;
+    if (T == dynamic || T == Map) {
+      final s = preferences.getString(key);
+      return s == null ? null : jsonDecode(s) as T?;
     }
-    if (T == double) {
-      return preferences.getDouble(key) as T?;
-    }
-    if (T == bool) {
-      return preferences.getBool(key) as T?;
-    }
-    if (T == List<String>) {
-      return preferences.getStringList(key) as T?;
-    }
-
-    // If T is not a primitive type, assume it's a complex object stored as a JSON string.
-    final jsonString = preferences.getString(key);
-    if (jsonString != null) {
-      try {
-        final decodedValue = jsonDecode(jsonString);
-        if (!kReleaseMode) {
-          logUI.debug('☺ SharedPrefHelper ☺ get decoded $key: $decodedValue (Type: $T)');
-        }
-        return decodedValue as T?;
-      } catch (e) {
-        logUI.error('Failed to decode JSON for key "$key": $e');
-        return null;
-      }
-    }
-
-    // Return null if the key doesn't exist or the type is unsupported and not a JSON string.
     return null;
   }
 
-  /// Persists a value to storage.
-  ///
-  /// Handles primitive types directly. For complex types like `Map` or `List`, it automatically encodes the value to a JSON string before saving.
   Future<bool> set<T>(String key, T value) async {
-    if (!kReleaseMode) {
-      logUI.debug('☺ SharedPrefHelper ☺ persist new $key: $value (Type: ${value.runtimeType})');
+    final adapter = _adapters[T] ?? _adapters[value.runtimeType];
+    if (adapter != null) {
+      await (adapter as PrefAdapter<T>).write(preferences, key, value);
+      return true;
     }
-
-    // Use `is` to check the runtime type of the `value` instance.
-    // The order is important: check for the specific List<String> before the general List.
-    if (value is String) {
-      return await preferences.setString(key, value);
+    if (value is Map || value is List) {
+      return await preferences.setString(key, jsonEncode(value));
     }
-    if (value is int) {
-      return await preferences.setInt(key, value);
-    }
-    if (value is double) {
-      return await preferences.setDouble(key, value);
-    }
-    if (value is bool) {
-      return await preferences.setBool(key, value);
-    }
-    if (value is List<String>) {
-      return await preferences.setStringList(key, value);
-    }
-    // For any other List or a Map, encode it as a JSON string.
-    if (value is List || value is Map) {
-      try {
-        final jsonString = jsonEncode(value);
-        return await preferences.setString(key, jsonString);
-      } catch (e) {
-        logUI.error('Failed to encode value for key "$key" to JSON: $e');
-        return false;
-      }
-    }
-
-    logUI.warning('Unsupported type ${value.runtimeType} for key "$key". Value not set.');
     return false;
   }
 
-  //
-  //
-  // ------------------------- Application Specific Getters -------------------------
-  //
-  //
+  int getThemeIndex() => get<int>(_selectedTheme) ?? 0;
+  Future<void> saveThemeIndex(int value) => set<int>(_selectedTheme, value);
 
-  /// Retrieves the index of the selected theme (defaulting to 0).
-  int getThemeIndex() {
-    return get<int>(_selectedTheme) ?? 0;
-  }
+  int getLanguageIndex() => get<int>(_selectedLanguage) ?? 0;
+  Future<void> saveLanguageIndex(int value) => set<int>(_selectedLanguage, value);
 
-  /// Saves the index of the selected theme.
-  Future<void> saveThemeIndex(int value) async {
-    await set<int>(_selectedTheme, value);
-  }
+  int getFontSize() => get<int>(_selectedFont) ?? 0;
+  Future<void> saveFontSize(int value) => set<int>(_selectedFont, value);
 
-  /// Retrieves the index of the selected language (defaulting to 0).
-  int getLanguageIndex() {
-    return get<int>(_selectedLanguage) ?? 0;
-  }
-
-  /// Saves the index of the selected language.
-  Future<void> saveLanguageIndex(int value) async {
-    await set<int>(_selectedLanguage, value);
-  }
-
-  /// Retrieves the index of the selected font size (defaulting to 0).
-  int getFontSize() {
-    return get<int>(_selectedFont) ?? 0;
-  }
-
-  /// Saves the index of the selected font size.
-  Future<void> saveFontSize(int value) async {
-    await set<int>(_selectedFont, value);
-  }
-
-  /// Retrieves the state of the app introducer/onboarding status.
   IntroducerModel? getIntroducer() {
     final jsonMap = get<Map<String, dynamic>>(_introducerKey);
     return jsonMap == null ? null : IntroducerModel.fromJson(jsonMap);
   }
 
-  /// Saves the current state of the app introducer/onboarding status.
-  Future<void> saveIntroducer(IntroducerModel value) async {
-    await set<Map<String, dynamic>>(_introducerKey, value.toJson());
+  Future<void> saveIntroducer(IntroducerModel value) => set<Map<String, dynamic>>(_introducerKey, value.toJson());
+
+  String? getTenantId() => get<String>(_tenantIdKey);
+  Future<void> saveTenantId(String value) => set<String>(_tenantIdKey, value);
+}
+
+/// Secure storage helper using flutter_secure_storage.
+class SecureAuthStorage {
+  Future<void> saveToken(String key, String token) async {
+    logAuth.info('SecureAuthStorage: Saving token for $key (Mocked)');
   }
 
-  /// Retrieves the ID of the current tenant for multi-tenant applications.
-  String? getTenantId() {
-    return get<String>(_tenantIdKey);
+  Future<String?> readToken(String key) async {
+    logAuth.info('SecureAuthStorage: Reading token for $key (Mocked)');
+    return null;
   }
 
-  /// Saves the ID of the current tenant.
-  Future<void> saveTenantId(String value) async {
-    await set<String>(_tenantIdKey, value);
+  Future<void> clearAll() async {
+    logAuth.info('SecureAuthStorage: Clearing all tokens (Mocked)');
   }
 }

@@ -289,56 +289,119 @@ Build with `--dart-define` or `--flavor` to select the entry point.
 
 ---
 
-## 🟡 4. CLI Scaffolding Tool
+## 🟡 4. Convention-over-Configuration Cubits
 
 ### Problem
-Creating a new feature requires creating 10+ files with specific types, imports, and boilerplate.
+As seen in the `demo` project, every feature Cubit (e.g., `ProductCubit`) must manually override 5-7 methods (`load`, `one`, `save`, `destroy`, etc.) only to call the exact same methods on the `http()` service. This creates massive boilerplate for every feature.
 
 ### Solution
-Build a Dart CLI tool:
+Implement a `CakyCubit` base class that uses the `BaseApiService` contract to auto-implement these methods:
 
-```bash
-# Install globally
-dart pub global activate caky_cli
+```dart
+abstract class CakyCubit<TService extends BaseApiService<TModel, TRequest, TFilter>, TState extends MyBaseState, TModel, TRequest, TFilter> 
+    extends MyBaseBloc<TService, TState>
+    with 
+        CrudBloc<TService, TState, TModel, TRequest, TFilter>,
+        PaginationBloc<TService, TState, TModel, TFilter> {
+  
+  CakyCubit({required TState bs}) : super(bs: bs);
 
-# Create a new feature
-caky create feature product
+  @override
+  Future<TModel> one({required int id, TFilter? params}) async =>
+      (await handle(http().show(id: id, params: params)))!;
 
-# Output:
-# ✅ Created lib/features/product/model/product.dart
-# ✅ Created lib/features/product/model/product_request.dart
-# ✅ Created lib/features/product/model/product_filter.dart
-# ✅ Created lib/features/product/data/product_api.dart
-# ✅ Created lib/features/product/logic/product_cubit.dart
-# ✅ Created lib/features/product/logic/product_state.dart
-# ✅ Created lib/features/product/helpers/product_maker.dart
-# ✅ Created lib/features/product/helpers/product_controller.dart
-# ✅ Created lib/features/product/ui/product_form.dart
-# ✅ Created lib/features/product/ui/product_list_screen.dart
-# ✅ Created lib/features/product/ui/product_editor_screen.dart
-# ✅ Updated lib/registrar.dart (added ProductApiService, ProductCubit)
+  @override
+  Future<int> save({required int id, required TRequest request}) async =>
+      (await (id != 0 ? handle(http().update(id: id, request: request)) : handle(http().create(request))))!;
 
-# Create just a model
-caky create model user --fields="id:int,name:String,email:String?"
-
-# Create an impl package
-caky create impl biometric --contract=BiometricAuth
+  // ... and so on for all standard CrudBloc/PaginationBloc methods
+}
 ```
 
-Use template files with placeholder substitution:
+**New Developer Experience:**
 ```dart
-// templates/cubit.dart.tmpl
-class {{Name}}Cubit extends MyBaseBloc<{{Name}}ApiService, {{Name}}State>
-    with CrudBloc<{{Name}}ApiService, {{Name}}State, {{Name}}, {{Name}}Request, {{Name}}Filter>,
-         PaginationBloc<{{Name}}ApiService, {{Name}}State, {{Name}}, {{Name}}Filter> {
-  {{Name}}Cubit() : super(bs: {{Name}}State());
-  // ...
+class ProductCubit extends CakyCubit<ProductApiService, ProductState, Product, ProductRequest, ProductFilter> {
+  ProductCubit() : super(bs: ProductState());
+  
+  @override
+  ProductFilter defaultFilter() => ProductFilter();
+}
+// 0 lines of CRUD boilerplate!
+```
+
+---
+
+## 🟡 5. Modular Registration System
+
+### Problem
+`MyRegistrar` in the demo project is 117 lines long and registers dozens of Cubits in a single giant list. This makes the file hard to maintain and conflicts with a modular architecture.
+
+### Solution
+Introduce `ModuleConfig` handlers:
+
+```dart
+abstract class ModuleConfig {
+  void register(Injector i);
+  List<SingleChildWidget> get providers => [];
+}
+
+class ProductModule extends ModuleConfig {
+  @override
+  void register(Injector i) {
+    i.add(() => ProductApiService.instance());
+    i.add(() => ProductCubit());
+  }
+}
+
+// In Registrar.init()
+final modules = [
+  ProductModule(),
+  OrderModule(),
+  AuthModule(),
+];
+
+for (var m in modules) {
+  m.register(Core.i);
 }
 ```
 
 ---
 
-## 🟡 5. API Versioning Support
+## 🟡 6. State-to-Header Synchronization
+
+### Problem
+The demo project uses `CakeInterceptor` to manually pull data from `RegionRepository` and `SharedPrefHelper` into every request header.
+
+### Solution
+Add a registry for dynamic headers in `Core`:
+
+```dart
+typedef HeaderProvider = Future<String?> Function();
+
+class Core {
+  final Map<String, HeaderProvider> _dynamicHeaders = {};
+
+  void registerHeader(String key, HeaderProvider provider) {
+    _dynamicHeaders[key] = provider;
+  }
+}
+
+// Interceptor iterates this map
+class DynamicHeaderInterceptor extends Interceptor {
+  @override
+  void onRequest(options, handler) async {
+    for (var entry in Core.i.dynamicHeaders.entries) {
+      final value = await entry.value();
+      if (value != null) options.headers[entry.key] = value;
+    }
+    handler.next(options);
+  }
+}
+```
+
+---
+
+## 🟡 7. API Versioning Support
 
 ### Problem
 `Config.baseUrl` is a single string. No mechanism for hitting different API versions or gracefully handling version deprecation.
@@ -376,7 +439,7 @@ class ApiVersionInterceptor extends Interceptor {
 
 ---
 
-## 🟡 6. Cross-Package Dependency Audit
+## 🟡 8. Cross-Package Dependency Audit
 
 ### Problem
 Some packages have dependencies that could be simplified or removed:
@@ -390,7 +453,7 @@ Some packages have dependencies that could be simplified or removed:
 
 ---
 
-## 🟡 7. Add Structured Error Codes
+## 🟡 9. Add Structured Error Codes
 
 ### Problem
 Errors use free-form strings. No standardized error codes for the client to programmatically handle specific errors.

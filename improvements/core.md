@@ -449,4 +449,24 @@ class ConditionalRequestInterceptor extends Interceptor {
 }
 ```
 
-This reduces bandwidth and server load for frequently-accessed data.
+---
+
+## 🟡 13. Crash Reporting Registry (Sentry/Crashlytics)
+
+### Problem
+The demo project manually integrates Sentry in `main.dart`. This should be a first-class citizen of the `core` package.
+
+### Solution
+Add a contract for `CrashMessenger` and integrate it into `ExceptionHandler`:
+
+```dart
+abstract class CrashMessenger {
+  void report(dynamic error, StackTrace? stack);
+  void log(String message);
+}
+
+// In ExceptionHandler.ex()
+final e = mapToCustomException(err);
+Core.get<CrashMessenger>().report(err, err.stackTrace);
+return e;
+```

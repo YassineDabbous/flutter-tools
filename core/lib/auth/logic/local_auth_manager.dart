@@ -117,4 +117,12 @@ class AuthLocalManager {
     realToken = token;
     await _prefs.set<String>(_kKeyRealToken, token);
   }
+
+  /// Updates the token for the current user and persists it.
+  Future<void> updateToken(String newToken) async {
+    if (currentUser != null) {
+      currentUser!.token = newToken;
+      await setCurrentUser(currentUser!);
+    }
+  }
 }

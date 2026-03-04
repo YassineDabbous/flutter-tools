@@ -4,7 +4,33 @@
 
 ---
 
-## 🟡 1. Offline-First with Local Database Sync
+## 🟠 1. Admin Dashboard Foundation
+
+### Idea
+As seen in the `demo` project's `admin/` folder, many screens share a common layout: `AdminScreenWrapper`, `AdminAppBar`, and `DefaultGrid`. These should be moved from the demo into the `concrete` package to provide a standard Admin SDK.
+
+### Features
+- `AdminScaffold`: Handles sidebar, top bar, and responsive behavior.
+- `AdminQuickSearch`: Automated search bar tied to `BaseController`.
+- `AdminActionToolbar`: Automatically renders `ActionButton`s based on `BaseController.selectedIds`.
+- `AdminStatsHeader`: Renders `StatisticsResponse` at the top of list screens.
+
+---
+
+## 🟡 2. Unified E-commerce Cart & Checkout Foundation
+
+### Idea
+The demo implementation of `CartCubit` and `CartInterceptor` shows a need for a standardized "Cart System" in the SDK.
+
+### Features
+- `BaseCartCubit`: Standard logic for add/remove/update/clear items.
+- `CartPersistenceLayer`: Auto-save cart to LocalStorage or sync with API.
+- `CartHeaderSync`: Automatically injects `X-Cart-ID` into every HTTP request.
+- `CheckoutStepFlow`: Standard BLoC for multi-step checkouts (Shipping → Payment → Review).
+
+---
+
+## 🟡 3. Offline-First with Local Database Sync
 
 ### Concept
 Move from "crash on no internet" to "work offline, sync when connected". This is the single highest-value addition for mobile apps in areas with unreliable connectivity.

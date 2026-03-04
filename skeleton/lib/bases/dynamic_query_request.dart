@@ -83,6 +83,41 @@ abstract class DynamicQueryRequest<T> extends SuperModel<T> {
     this.timezone,
   });
 
+  // --- Fluent Builders ---
+
+  DynamicQueryRequest<T> select(List<String> fields) {
+    this.fields = fields;
+    return this;
+  }
+
+  DynamicQueryRequest<T> orderBy(String field, {bool descending = false}) {
+    sort ??= [];
+    sort!.add(descending ? '-$field' : field);
+    return this;
+  }
+
+  DynamicQueryRequest<T> where(String field, String operator, [String? clause]) {
+    operators ??= {};
+    operators![field] = operator;
+    if (clause != null) {
+      clauses ??= {};
+      clauses![field] = clause;
+    }
+    return this;
+  }
+
+  DynamicQueryRequest<T> limitTo(int limit) {
+    this.limit = limit;
+    return this;
+  }
+
+  DynamicQueryRequest<T> pageTo(int page, {int? perPage}) {
+    this.page = page;
+    if (perPage != null) this.perPage = perPage;
+    return this;
+  }
+}
+
   // factory DynamicQueryRequest.fromJson(Map<String, dynamic> json) =>
   //     _$DynamicQueryRequestFromJson(json);
 

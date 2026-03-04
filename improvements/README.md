@@ -1,7 +1,5 @@
 # Caky Packages — Improvement Proposals
 
-> Actionable improvements, refactoring ideas, and new feature proposals for the Caky SDK. Organized by package and priority.
-
 ---
 
 ## Priority Matrix
@@ -26,45 +24,66 @@
 6. 🟠 Make `SharedPrefHelper` generic type system compile-time safe
 7. 🟡 Add connectivity-aware request queuing
 8. 🟡 Replace `print()` calls with structured logging
+9. 🟡 Add `AuthLocalManager.updateToken()` method
+10. 🟡 Improve `Config` with validation
+11. 🟡 Add `onTokenAboutToExpire` callback
+12. 🟡 Improve cache with ETags
+13. 🟡 Crash Reporting Registry (Sentry/Crashlytics) — **New**
 
 ### Skeleton Package — [Details →](skeleton.md)
-1. 🟠 Use Dart 3 sealed classes for exhaustive state pattern matching
-2. 🟠 Add repository layer between BLoC and API
-3. 🟠 Make `PaginationBloc` support cursor-based pagination
-4. 🟡 Add optimistic update support to `CrudBloc`
-5. 🟡 Extract common BLoC patterns into a code generator
-6. 🟡 Add real-time data sync via WebSocket integration
+1. 🟠 Automatic CRUD Mixin (Zero-Boilerplate) — **New**
+2. 🟠 Use Dart 3 sealed classes for exhaustive state matching
+3. 🟠 Add repository layer between BLoC and API
+4. 🟠 Make `PaginationBloc` support cursor-based pagination
+5. 🟡 Add optimistic update support to `CrudBloc`
+6. 🟡 Extract common BLoC patterns into a code generator
+7. 🟡 Add real-time data sync via WebSocket integration
+8. 🟡 Improve `BaseMaker` with attachment tracking
+9. 🟡 Add `DynamicQueryRequest` convenience builders
+10. 🟡 Add form state preservation (draft saving)
 
 ### Concrete Package — [Details →](concrete.md)
 1. 🟡 Build a comprehensive design system / component library
 2. 🟡 Add accessibility (a11y) support to all widgets
-3. 🟡 Add skeleton loading (shimmer) integration for all list/grid widgets
-4. 🟢 Add dark mode adaptive colors to all components
+3. 🟡 Add skeleton loading (shimmer) integration
+4. 🟢 Add dark mode adaptive colors
 5. 🟢 Add responsive breakpoint-aware layouts
+6. 🟢 Standardized Empty and Error State components
+7. 🟢 Snackbar varieties (success, error, info)
 
 ### Action Package — [Details →](action.md)
 1. 🟡 Support undo/redo for destructive actions
-2. 🟡 Add batch progress tracking (progress bar for bulk operations)
+2. 🟡 Add batch progress tracking
 3. 🟡 Support offline queued actions
 4. 🟢 Add action audit trail / history
+5. 🟢 Action templates / presets
 
 ### Impl Packages — [Details →](impl.md)
 1. 🟡 Add fallback/mock implementations for all contracts
 2. 🟡 Create platform-adaptive contract resolver
-3. 🟢 Add impl_biometric for biometric authentication
-4. 🟢 Add impl_analytics for event tracking
+3. 🟢 Add `impl_biometric` for biometric authentication
+4. 🟢 Add `impl_analytics` for event tracking
+5. 🟢 Add `impl_deep_link` for universal links
+6. 🟢 Standardize impl package folder structure
 
 ### Architecture — [Details →](architecture.md)
 1. 🔴 Add comprehensive test infrastructure
-2. 🟠 Introduce a Result type for error handling
+2. 🟠 Introduce a `Result` type for error handling
 3. 🟠 Add environment-based configuration
-4. 🟡 Create a CLI tool for scaffolding features
-5. 🟡 Add API versioning support
+4. 🟡 Convention-over-Configuration Cubits — **New**
+5. 🟡 Modular Registration System — **New**
+6. 🟡 State-to-Header Synchronization — **New**
+7. 🟡 Add API versioning support
+8. 🟡 Cross-package dependency audit
+9. 🟡 Add structured error codes
 
 ### New Features — [Details →](new-features.md)
-1. 🟡 Offline-first with local database sync
-2. 🟡 Real-time features via WebSocket/SSE
-3. 🟡 Feature flags system
-4. 🟢 App update checker
-5. 🟢 Crash reporting integration
-6. 🟢 In-app feedback/bug reporting
+1. 🟠 Admin Dashboard Foundation (Admin SDK) — **New**
+2. 🟡 Unified E-commerce Cart & Checkout Foundation — **New**
+3. 🟡 Offline-first with local database sync
+4. 🟡 Real-time features via WebSocket/SSE
+5. 🟡 Feature flags system
+6. 🟢 App update checker
+7. 🟢 Crash reporting integration
+8. 🟢 In-app feedback/bug reporting
+9. 🟢 Smart prefetching

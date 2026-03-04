@@ -1,26 +1,31 @@
 import 'package:core/core.dart';
 import 'package:skeleton/skeleton.dart';
 
-//
-//
-// Map<String, FileField> attachments = {};
-// get attachmentsMap => (attachments..removeWhere((key, value) => value.data == null)).map((key, value) => MapEntry(key, value.formPart()!));
-// Map<String, MultipartFile>
-// FileField? attachmentsGet(String key) => attachments[key];
-// FileField attachmentsSet(String key, dynamic value) {
-//   if (attachments.containsKey(key) && attachments[key] != null) {
-//     attachments[key]!.data = value;
-//   } else {
-//     attachments[key] = FileField(name: key, type: type)
-//   }
-//   return attachments[key]!;
-// }
-
 /// Maker classes (like `UserMaker`, `PostMaker`) are used as helpers for Create/Edit screens and EditForm.
 abstract class BaseMaker<TModel extends Jsonable, TRequest extends SuperModel<TRequest>> {
   int id = 0; // default to 0 for creation forms
   late TRequest form; // resource fields that will be modified and submitteds
   late TRequest fixed; // unmodifiable resource fields
+
+  final Map<String, dynamic> _attachments = {};
+
+  /// Retrieves the current map of attachments.
+  Map<String, dynamic> get attachments => _attachments;
+
+  /// True if there are any attachments queued for upload.
+  bool get hasAttachments => _attachments.isNotEmpty;
+
+  /// Sets an attachment for a specific key (e.g., 'image', 'document').
+  void setAttachment(String key, dynamic value) {
+    if (value == null) {
+      _attachments.remove(key);
+    } else {
+      _attachments[key] = value;
+    }
+  }
+
+  /// Clears all attachments.
+  void clearAttachments() => _attachments.clear();
 
   /// true if form valide, used usualy as a proxy to FormState.validate()
   bool Function()? validate;

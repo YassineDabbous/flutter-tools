@@ -2,7 +2,31 @@
 
 ---
 
-## 🟠 1. Use Dart 3 Sealed Classes for Exhaustive State Matching
+## 🟠 1. Automatic CRUD Mixin (Zero-Boilerplate)
+
+### Problem
+As seen in the `demo` `ProductCubit`, developers must manually override 5-7 methods (`load`, `one`, `save`, etc.) only to relay calls to the `http()` service.
+
+### Solution
+Introduce `AutoCrudBloc` that uses types to find methods:
+
+```dart
+mixin AutoCrudBloc<TService extends BaseApiService<TModel, TRequest, TFilter>, TState extends MyBaseState, TModel, TRequest, TFilter> 
+    on MyBaseBloc<TService, TState> {
+  
+  @override
+  Future<TModel> one({required int id, TFilter? params}) async => 
+      (await handle(http().show(id: id, params: params)))!;
+      
+  @override
+  Future<int> save({required int id, required TRequest request}) async =>
+      (await (id != 0 ? handle(http().update(id: id, request: request)) : handle(http().create(request))))!;
+}
+```
+
+---
+
+## 🟠 2. Use Dart 3 Sealed Classes for Exhaustive State Matching
 
 ### Problem
 The current state system uses abstract classes (`MyBaseState<StateType>`) with dynamic type checking. Widget builders use `if (state is X)` chains which:
@@ -65,7 +89,7 @@ Widget build(context) => switch (state) {
 
 ---
 
-## 🟠 2. Add Repository Layer
+## 🟠 3. Add Repository Layer
 
 ### Problem
 BLoCs directly call API services via `http().show(...)`. This:
@@ -136,7 +160,7 @@ class ProductCubit extends Cubit<ProductState> {
 
 ---
 
-## 🟠 3. Cursor-Based Pagination Support
+## 🟠 4. Cursor-Based Pagination Support
 
 ### Problem
 `PaginationBloc` only supports offset-based pagination (`page=1,2,3...`). Many modern APIs use cursor-based pagination for:
@@ -189,7 +213,7 @@ mixin PaginationBloc<..., Strategy extends PaginationStrategy> {
 
 ---
 
-## 🟡 4. Optimistic Updates in `CrudBloc`
+## 🟡 5. Optimistic Updates in `CrudBloc`
 
 ### Problem
 When updating a resource, the UI shows a loading state until the server responds. This feels slow for simple edits.
@@ -226,7 +250,7 @@ mixin OptimisticCrud<...> on CrudBloc<...> {
 
 ---
 
-## 🟡 5. Code Generator for BLoC Boilerplate
+## 🟡 6. Code Generator for BLoC Boilerplate
 
 ### Problem
 For each new feature, developers must create:
@@ -267,7 +291,7 @@ class ProductFeature {}
 
 ---
 
-## 🟡 6. WebSocket Integration for Real-Time Sync
+## 🟡 7. WebSocket Integration for Real-Time Sync
 
 ### Problem
 `PaginationBloc.lista` is a static in-memory cache. If another user creates/updates/deletes a resource, the current user won't see it until they manually refresh.
@@ -320,7 +344,7 @@ mixin RealtimeSync<Model> {
 
 ---
 
-## 🟡 7. Improve `BaseMaker` with Attachment Tracking
+## 🟡 8. Improve `BaseMaker` with Attachment Tracking
 
 ### Problem
 The commented-out `attachments` map in `BaseMaker` shows that file attachment management was planned but never completed. Currently, each Maker must manually manage `FileField` objects.
@@ -361,7 +385,7 @@ class ProductMaker extends BaseMaker<Product, ProductRequest> {
 
 ---
 
-## 🟡 8. Add `DynamicQueryRequest` Convenience Builders
+## 🟡 9. Add `DynamicQueryRequest` Convenience Builders
 
 ### Problem
 Building filters with operators, sorting, and BI parameters requires knowing the raw JSON key names (`_sort[]`, `_operators`, etc.).
@@ -411,7 +435,7 @@ final filter = ProductFilter()
 
 ---
 
-## 🟡 9. Add Form State Preservation
+## 🟡 10. Add Form State Preservation
 
 ### Problem
 If the user navigates away from an edit form and comes back, all input data is lost. The `FormHandler` doesn't save draft state.

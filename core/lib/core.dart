@@ -1,6 +1,8 @@
 export 'main.dart';
+export 'utils/result.dart';
 
 export 'app/app.dart';
+export 'app/module_config.dart';
 
 export 'blocs/blocs.dart';
 
