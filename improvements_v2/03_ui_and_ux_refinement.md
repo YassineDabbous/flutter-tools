@@ -3,31 +3,52 @@
 Elevating the visual quality and interactive feel of the `concrete` package.
 
 ## 1. Universal Design Tokens & Theme Engine
-Instead of just colors, the SDK should support a full Design System with tokens for Spacing, Radius, Typography, and Motion.
+The SDK should support a full Design System with tokens for Spacing, Radius, Typography, and Motion.
 
-- **V2 Idea**: A `CakyThemeEngine` that supports dynamic brand swapping at runtime.
-- **Benefit**: Create highly-customized white-label apps from a single codebase.
+### Implementation Details
+- **Libraries**: `theme_tailor` (optional), `flutter/material.dart`.
+- **Steps**:
+    1. Define `CakyDesignTokens` class with constants.
+    2. Use `ThemeExtension` to inject custom tokens into `ThemeData`.
+    3. Implement `ThemeSwitcherCubit` to toggle between Light, Dark, and High-Contrast modes.
+    4. Access: `Theme.of(context).extension<CakyTokens>()!.spacingSmall`.
 
-## 2. Advanced Micro-Interactions (Framer-like Motion)
-Integrating specialized motion packages or custom implicit animations.
+## 2. Advanced Micro-Interactions
+Integrating specialized motion patterns for a premium feel.
 
-- **V2 Idea**: Standardized `Hero` wrapper and `AnimatedSwitcher` patterns for common UI transitions (list item entry, page slide, etc.).
-- **Benefit**: Smooth, premium feel that wows the user.
+### Implementation Details
+- **Libraries**: `animations`, `flutter_animate`.
+- **Steps**:
+    1. Standardize page transitions using `OpenContainer` (from `animations` package).
+    2. Create `CakyAnimatedList` that uses `TweenAnimationBuilder` for entry staggered animations.
+    3. Implement "Pull-to-Refresh" with custom high-fidelity Lottie animations.
 
 ## 3. Composable Dashboard System
-Admin UIs often need dashboards. Providing a library of chart and stat widgets.
+Providing a library of chart and stat widgets for Admin features.
 
-- **V2 Idea**: Integrating `fl_chart` or building custom light-weight chart components.
-- **Benefit**: Drag-and-drop dashboard building for Admin features.
+### Implementation Details
+- **Libraries**: `fl_chart`.
+- **Steps**:
+    1. Create `CakyLineChart` and `CakyBarChart` wrappers that simplify `fl_chart` configuration.
+    2. Implement `StatCard` widget with built-in trend indicators (up/down arrows).
+    3. Data Integration: Link with `BaseStatisticsCubit` (from Skeleton) for easy data feed.
 
 ## 4. Skeletal Layout Templates
-More than just a `ShimmerHelper`. Providing full-page skeletal mockups.
+Providing full-page skeletal mockups for consistent loading states.
 
-- **V2 Idea**: A `SkeletalLayoutBuilder` that accepts a widget structure and replaces it with a shimmer ghost.
-- **Benefit**: Drastically reduced effort to implement loading states.
+### Implementation Details
+- **Steps**:
+    1. Use `ShimmerHelper` (from V1) as a building block.
+    2. Create `PageSkeleton` widgets (e.g., `ProfileSkeleton`, `ListSkeleton`).
+    3. Implement `SkeletonSwitcher` that cross-fades between the skeleton and the actual content once loaded.
 
 ## 5. Localized UI Helpers
 Automatic RTL switching, date/time formatting, and currency support.
 
-- **V2 Idea**: `CakyLocalizer` that manages all UI-related locale adjustments automatically.
-- **Benefit**: Seamless internationalization out of the box.
+### Implementation Details
+- **Libraries**: `intl`, `flutter_localizations`.
+- **Steps**:
+    1. Define `CakyLocaleManager` that observes the system locale.
+    2. Implement `extensions` on `DateTime` and `num` for auto-formatting.
+    3. Ensure `concrete` widgets respect `Directionality.of(context)` for automatic RTL mirroring.
+    4. Example: `price.toCurrency(context)`.
