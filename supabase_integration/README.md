@@ -9,6 +9,10 @@ This guide explains how to adapt the Caky SDK for Supabase.
 | [01 Overview](./01_overview.md) | Backend-agnostic strategy and what's reusable. |
 | [02 API Service](./02_api_service.md) | Implementing `BaseApiService` using `SupabaseClient`. |
 | [03 Auth & Errors](./03_auth_and_errors.md) | Supabase Auth listeners and Error mapping. |
+| [04 Advanced Real-time](./04_advanced_realtime.md) | Reactive PaginationBloc, Broadcast and Presence. |
+| [05 Storage & Media](./05_storage_and_media.md) | Supabase Storage integration with BaseMaker. |
+| [06 RPC & Edge Functions](./06_rpc_and_functions.md) | Postgres Functions and Edge logic integration. |
+| [07 Helpers & Utils](./07_helpers_and_utils.md) | Postgrest extensions and Auth overrides. |
 
 ## Implementation Checklist
 
