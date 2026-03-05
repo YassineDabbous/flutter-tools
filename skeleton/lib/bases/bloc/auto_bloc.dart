@@ -1,16 +1,17 @@
 import 'package:skeleton/skeleton.dart';
 
 /// Automated CRUD logic that eliminates the need to override standard API calls.
-/// 
+///
 /// It assumes the [ApiType] follows the [BaseApiService] contract.
 mixin AutoCrudBloc<
-    ApiType extends BaseApiService<Model, Request, Filter>, 
-    BaseState extends CrudState<BaseState, Model, ID>, 
-    Model, 
-    Request, 
-    Filter,
-    ID> on CrudBloc<ApiType, BaseState, Model, Request, Filter, ID> {
-  
+  ApiType extends BaseApiService<Model, Request, Filter, ID>,
+  BaseState extends CrudState<BaseState, Model, ID>,
+  Model,
+  Request,
+  Filter,
+  ID
+>
+    on CrudBloc<ApiType, BaseState, Model, Request, Filter, ID> {
   @override
   Future<Model> one({required ID id, Filter? params}) async =>
       (await handle(http().show(id: id, params: params))).data!;
@@ -21,9 +22,10 @@ mixin AutoCrudBloc<
     // This depends on the ID type used.
     final bool isUpdate = (id != null && id != 0 && id != '');
 
-    return (await (isUpdate 
-        ? handle(http().update(id: id, request: request)) 
-        : handle(http().create(request)))).data!;
+    return (await (isUpdate
+            ? handle(http().update(id: id, request: request))
+            : handle(http().create(request))))
+        .data!;
   }
 
   @override
@@ -33,11 +35,12 @@ mixin AutoCrudBloc<
 
 /// Automated Pagination logic.
 mixin AutoPaginationBloc<
-    ApiType extends BaseApiService<Model, dynamic, Filter, dynamic>, 
-    BaseState extends PaginationState<BaseState, Model>, 
-    Model, 
-    Filter> on PaginationBloc<ApiType, BaseState, Model, Filter> {
-  
+  ApiType extends BaseApiService<Model, dynamic, Filter, dynamic>,
+  BaseState extends PaginationState<BaseState, Model>,
+  Model,
+  Filter
+>
+    on PaginationBloc<ApiType, BaseState, Model, Filter> {
   @override
   Future<PaginatedResponse<Model>> load() async =>
       (await handle(http().paging(page: page, request: filter))).data!;

@@ -17,6 +17,9 @@ dependencies:
     path: ../concrete
   skeleton:
     path: ../skeleton
+  equatable: ^2.0.7
+  flutter_bloc: ^9.1.1
+  bloc: ^9.0.0
 
 dev_dependencies:
   flutter_test:

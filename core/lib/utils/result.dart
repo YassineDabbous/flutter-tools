@@ -1,4 +1,4 @@
-sealed class Result<S, E> {
+sealed class Result<S, E extends Object> {
   const Result();
 
   /// Returns true if the result is success.
@@ -36,12 +36,13 @@ sealed class Result<S, E> {
   }
 }
 
-class Success<S, E> extends Result<S, E> {
+class Success<S, E extends Object> extends Result<S, E> {
   final S data;
   const Success(this.data);
 }
 
-class Failure<S, E> extends Result<S, E> {
+class Failure<S, E extends Object> extends Result<S, E> {
+  @override
   final E error;
   const Failure(this.error);
 }

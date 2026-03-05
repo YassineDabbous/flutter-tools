@@ -2,14 +2,16 @@ import 'package:skeleton/skeleton.dart';
 
 /// Mixin for optimistic UI updates in CRUD operations.
 mixin OptimisticCrud<
-    ApiType extends BaseApiService<Model, Request, Filter>, 
-    BaseState extends CrudState<BaseState, Model>, 
-    Model extends Identifiable, 
-    Request, 
-    Filter> on CrudBloc<ApiType, BaseState, Model, Request, Filter> {
-
+  ApiType extends BaseApiService<Model, Request, Filter, ID>,
+  BaseState extends CrudState<BaseState, Model, ID>,
+  Model extends Identifiable,
+  Request,
+  Filter,
+  ID
+>
+    on CrudBloc<ApiType, BaseState, Model, Request, Filter, ID> {
   /// Executes a delete operation optimistically.
-  void deleteOptimistic(int id, {Filter? params}) async {
+  void deleteOptimistic(ID id, {Filter? params}) async {
     final previousModel = model;
     try {
       // Emit 'deleted' state immediately if we have a way to reflect this in UI
@@ -30,7 +32,7 @@ mixin OptimisticCrud<
   /// Executes an update operation optimistically.
   /// Requires a way to transform the [Request] back into a [Model].
   void updateOptimistic({
-    required int id, 
+    required ID id,
     required Request request,
     required Model Function(Model current, Request request) applyChanges,
   }) async {

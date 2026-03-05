@@ -5,7 +5,8 @@ class ActionState extends MyBaseState<dynamic> {
   List<Object> get props => [];
 
   @override
-  error({required String error, int code = 0}) => ActionErrorState(message: error);
+  error({required String error, int code = 0}) =>
+      ActionErrorState(message: error);
 
   @override
   get initial => ActionInitialState();
@@ -23,7 +24,7 @@ class ActionInitialState extends ActionState {}
 class ActionHandlingState extends ActionState {}
 
 class ActionHandledState extends ActionState {
-  final BasicResponse data;
+  final ApiResponse data;
   ActionHandledState(this.data);
   @override
   List<Object> get props => [data];

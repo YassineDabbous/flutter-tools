@@ -2,7 +2,13 @@ import 'package:flutter/widgets.dart';
 import 'package:skeleton/skeleton.dart';
 
 // Abstract Form widget
-abstract class EditForm<TModel extends Jsonable, TRequest extends SuperModel<TRequest>, TMaker extends BaseMaker<TModel, TRequest>> extends StatefulWidget {
+abstract class EditForm<
+  TModel extends Jsonable,
+  TRequest extends SuperModel<TRequest>,
+  TMaker extends BaseMaker<TModel, TRequest, ID>,
+  ID
+>
+    extends StatefulWidget {
   /// extends [Maker]
   final TMaker maker;
 
@@ -13,11 +19,22 @@ abstract class EditForm<TModel extends Jsonable, TRequest extends SuperModel<TRe
   final List<String>? fields;
 
   /// Constructor
-  const EditForm({super.key, required this.maker, this.validation, this.fields});
+  const EditForm({
+    super.key,
+    required this.maker,
+    this.validation,
+    this.fields,
+  });
 }
 
 // State helper for the Form widget
-mixin FormHandler<TModel extends Jsonable, TRequest extends SuperModel<TRequest>, TMaker extends BaseMaker<TModel, TRequest>> on State<EditForm<TModel, TRequest, TMaker>> {
+mixin FormHandler<
+  TModel extends Jsonable,
+  TRequest extends SuperModel<TRequest>,
+  TMaker extends BaseMaker<TModel, TRequest, ID>,
+  ID
+>
+    on State<EditForm<TModel, TRequest, TMaker, ID>> {
   final GlobalKey<FormState> formkey = GlobalKey<FormState>();
   Map<String, String>? validation;
 
@@ -31,7 +48,9 @@ mixin FormHandler<TModel extends Jsonable, TRequest extends SuperModel<TRequest>
   }
 
   @override
-  void didUpdateWidget(covariant EditForm<TModel, TRequest, TMaker> oldWidget) {
+  void didUpdateWidget(
+    covariant EditForm<TModel, TRequest, TMaker, ID> oldWidget,
+  ) {
     super.didUpdateWidget(oldWidget);
     // If the validation map changed, re-sync the local map
     if (widget.validation != oldWidget.validation) {
@@ -48,10 +67,11 @@ mixin FormHandler<TModel extends Jsonable, TRequest extends SuperModel<TRequest>
     });
   }
 
-  
-
   /// Specify whether a field should be visible in the creat/edit form.
-  bool isVisibleField(String f) => (widget.fields == null) || (widget.fields!.contains(f)) || (widget.validation?.containsKey(f) ?? false);
+  bool isVisibleField(String f) =>
+      (widget.fields == null) ||
+      (widget.fields!.contains(f)) ||
+      (widget.validation?.containsKey(f) ?? false);
 
   bool isHiddenField(String f) => !isVisibleField(f);
 

@@ -13,7 +13,11 @@ mixin PaginationState<StateType, Model> on MyBaseState<StateType> {
   StateType get pageLoading;
 
   /// creates a Successful `PageLoaded` state
-  StateType pageLoaded({required List<Model> data, required bool maxReached, required int nextPage});
+  StateType pageLoaded({
+    required List<Model> data,
+    required bool maxReached,
+    required int nextPage,
+  });
 }
 
 //
@@ -22,7 +26,12 @@ mixin PaginationState<StateType, Model> on MyBaseState<StateType> {
 //
 //
 
-mixin PaginationBloc<ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>, BaseState extends PaginationState<BaseState, Model>, Model, SearchFilter>
+mixin PaginationBloc<
+  ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>,
+  BaseState extends PaginationState<BaseState, Model>,
+  Model,
+  SearchFilter
+>
     on MyBaseBloc<ApiType, BaseState> {
   /// In-memory cache for loaded results
   List<Model> lista = [];
@@ -44,7 +53,12 @@ mixin PaginationBloc<ApiType extends BaseApiService<dynamic, dynamic, dynamic, d
   bool offlinePaging = false;
 
   /// Generate page numbers from `total` and `total`.
-  List<int> get pages => total == null || perPage == null || perPage == 0 ? [] : List.generate((total! / perPage!).ceil(), (index) => index).map((e) => e + 1).toList();
+  List<int> get pages => total == null || perPage == null || perPage == 0
+      ? []
+      : List.generate(
+          (total! / perPage!).ceil(),
+          (index) => index,
+        ).map((e) => e + 1).toList();
 
   /// Initialize default values
   @override
@@ -57,13 +71,15 @@ mixin PaginationBloc<ApiType extends BaseApiService<dynamic, dynamic, dynamic, d
   SearchFilter defaultFilter();
 
   /// Load the specified page
-  Future loadPage(int p) async => offlinePaging ? await moveOffline(toPage: p) : await move(toPage: p);
+  Future loadPage(int p) async =>
+      offlinePaging ? await moveOffline(toPage: p) : await move(toPage: p);
 
   /// Load the next page
   Future loadNext() async => offlinePaging ? await moveOffline() : await move();
 
   /// Load the previous page
-  Future loadPrevious() async => offlinePaging ? await moveOffline(back: true) : await move(back: true);
+  Future loadPrevious() async =>
+      offlinePaging ? await moveOffline(back: true) : await move(back: true);
 
   Future loadPageOffline(int p) async => await moveOffline(toPage: p);
   Future loadNextOffline() async => await moveOffline();
@@ -124,9 +140,9 @@ mixin PaginationBloc<ApiType extends BaseApiService<dynamic, dynamic, dynamic, d
       }
       emit(bs.pageLoading);
       final p = await load();
-      total = p.total ?? total;
-      perPage = p.perPage ?? perPage;
-      final l = p.data!;
+      total = p.total;
+      perPage = p.perPage;
+      final l = p.data;
       if (forAdmin) {
         lista.clear();
       }
@@ -159,7 +175,7 @@ mixin PaginationBloc<ApiType extends BaseApiService<dynamic, dynamic, dynamic, d
     emit(bs.pageLoading);
     try {
       final l = await load();
-      emit(bs.pageLoaded(data: l.data!, maxReached: maxReached, nextPage: page));
+      emit(bs.pageLoaded(data: l.data, maxReached: maxReached, nextPage: page));
     } catch (e) {
       emit(mapErrorToState(e));
     }

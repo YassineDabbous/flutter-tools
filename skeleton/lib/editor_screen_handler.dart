@@ -5,17 +5,22 @@ import 'package:flutter/material.dart';
 mixin EditorHandler<
   TModel extends Jsonable,
   TRequest extends SuperModel<TRequest>,
-  TMaker extends BaseMaker<TModel, TRequest>,
+  TMaker extends BaseMaker<TModel, TRequest, ID>,
   TWidget extends StatefulWidget,
-  TBind extends Object
+  TBind extends Object,
+  ID
 >
     on ControlledState<TWidget, TBind> {
   late TMaker maker;
 
   @override
   void initState() {
-    // maker.id == null || maker.id == 0 || maker.id == ''
-    if (maker.id.isEmpty) {
+    // Check if id is effectively "empty" for creation
+    final id = maker.id;
+    final isEmpty =
+        id == null || (id is String && id.isEmpty) || (id is int && id == 0);
+
+    if (isEmpty) {
       // creation screen can use query parameters as default values
       maker.fillFromQuery(Core.nav.queryParams());
     }

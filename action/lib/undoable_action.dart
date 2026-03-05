@@ -1,5 +1,3 @@
-import 'package:skeleton/skeleton.dart';
-
 /// Abstract class for actions that can be undone.
 abstract class UndoableAction {
   /// Executes the action.
@@ -15,7 +13,7 @@ abstract class UndoableAction {
 /// A manager for handling undo/redo operations.
 class UndoManager {
   final List<UndoableAction> _history = [];
-  
+
   void execute(UndoableAction action) async {
     await action.execute();
     _history.add(action);

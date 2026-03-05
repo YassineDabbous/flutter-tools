@@ -11,8 +11,20 @@ abstract class BaseAction {
   bool requireConfirmation = true;
   final Widget Function(BaseAction)? formBuilder;
 
-  BaseAction({required this.controller, required this.route, this.title, this.description, this.onHandled, this.formBuilder}) {
-    _request = ActionRequest(action: route, type: controller.type, keys: controller.initialySelectedIds, filter: controller.request.toJson());
+  BaseAction({
+    required this.controller,
+    required this.route,
+    this.title,
+    this.description,
+    this.onHandled,
+    this.formBuilder,
+  }) {
+    _request = ActionRequest(
+      action: route,
+      type: controller.type,
+      keys: controller.initialySelectedIds,
+      filter: controller.request.toJson(),
+    );
   }
 
   ActionRequest request() {
@@ -32,8 +44,20 @@ abstract class BaseAction {
   // Function()? runAction;
 }
 
+abstract class ActionApiService
+    extends BaseApiService<dynamic, dynamic, dynamic, dynamic> {
+  Future<ApiResponse<dynamic>> handleAction(ActionRequest request);
+}
+
 class GeneralAction extends BaseAction {
-  GeneralAction({required super.controller, required super.route, super.title, super.description, super.onHandled, super.formBuilder});
+  GeneralAction({
+    required super.controller,
+    required super.route,
+    super.title,
+    super.description,
+    super.onHandled,
+    super.formBuilder,
+  });
 }
 
 class ActionRequest extends SuperModel<ActionRequest> {
@@ -43,7 +67,13 @@ class ActionRequest extends SuperModel<ActionRequest> {
   Map<String, dynamic>? filter;
   Map<String, dynamic>? payload;
 
-  ActionRequest({required this.action, required this.type, this.keys, this.filter, this.payload});
+  ActionRequest({
+    required this.action,
+    required this.type,
+    this.keys,
+    this.filter,
+    this.payload,
+  });
   // @override
   // Map<String, dynamic> toJson() => {'action': action, 'type': type, 'keys': keys, 'filter': filter, 'payload': payload};
   @override
@@ -77,8 +107,13 @@ class ActionRequest extends SuperModel<ActionRequest> {
   }
 
   @override
-  ActionRequest fromJson(Map<String, dynamic> json) =>
-      ActionRequest(action: json['action'], type: json['type'], keys: json['keys'], filter: json['filter'], payload: json['payload']);
+  ActionRequest fromJson(Map<String, dynamic> json) => ActionRequest(
+    action: json['action'],
+    type: json['type'],
+    keys: json['keys'],
+    filter: json['filter'],
+    payload: json['payload'],
+  );
   //
   // factory ActionRequest.newInstance() => ActionRequest();
   // factory ActionRequest.fromJson(Map<String, dynamic> json) => ActionRequest(id: json['id'], type: json['type']);

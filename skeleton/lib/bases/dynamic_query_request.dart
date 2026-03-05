@@ -20,7 +20,7 @@ abstract class DynamicQueryRequest<T> extends SuperModel<T> {
 
   @JsonKey(name: '_get_all')
   bool? getAll;
- 
+
   // --- Selection ---
   @JsonKey(name: '_fields[]')
   List<String>? fields;
@@ -96,7 +96,11 @@ abstract class DynamicQueryRequest<T> extends SuperModel<T> {
     return this;
   }
 
-  DynamicQueryRequest<T> where(String field, String operator, [String? clause]) {
+  DynamicQueryRequest<T> where(
+    String field,
+    String operator, [
+    String? clause,
+  ]) {
     operators ??= {};
     operators![field] = operator;
     if (clause != null) {
@@ -122,4 +126,4 @@ abstract class DynamicQueryRequest<T> extends SuperModel<T> {
   //     _$DynamicQueryRequestFromJson(json);
 
   // Map<String, dynamic> toJson() => _$DynamicQueryRequestToJson(this);
-}
+// }
