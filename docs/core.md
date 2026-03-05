@@ -144,6 +144,9 @@ await superRequestTransform(
 );
 ```
 
+> [!NOTE]
+> `superRequestTransform` and the associated method spoofing are primarily designed for compatibility with Laravel backends (provided by `laravel_provider`).
+
 **Key behaviors:**
 - `PUT`/`PATCH` are spoofed as `POST` with a `_method` field (Laravel compatibility)
 - Lists use `ListFormat.multiCompatible` encoding

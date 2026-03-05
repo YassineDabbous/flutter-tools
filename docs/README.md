@@ -15,11 +15,9 @@
 │          skeleton           │  nav_go_router             │
 ├─────────────────────────────┤  impl_locator              │
 │            core             │  impl_device_info          │
-│                             │  impl_notifier_onesignal   │
-│  DI · HTTP · Auth · BLoC    │  media · media_audio/video │
-│  Router · Storage · i18n    │  file_picker · glassmorphism│
-│  Contracts · Extensions     │  advanced_editor           │
-│  Constants                  │  template_pack             │
+├─────────────────────────────┤  impl_notifier_onesignal   │
+│   laravel | supabase        │  media · media_audio/video │
+│       providers             │  file_picker · glassmorphism│
 └─────────────────────────────┴────────────────────────────┘
 ```
 
@@ -28,6 +26,8 @@
 ```
 core  ──▶  skeleton  ──▶  concrete  ──▶  action
   │            │               │
+  │            └──▶ providers (laravel/supabase)
+  │            │               │
   └────────────┴───────────────┴──▶  impl/* (pluggable implementations)
 ```
 
@@ -35,6 +35,7 @@ core  ──▶  skeleton  ──▶  concrete  ──▶  action
 |---------|------|------------|
 | **core** | Foundation: DI, HTTP (Dio), Auth, BLoC, Router, Storage, i18n, Contracts, Extensions | `flutter`, pub packages |
 | **skeleton** | Abstract bases: API service, BLoC mixins (CRUD, Pagination, Statistics), Handlers (Form, Filter, Editor), HTTP response models | `core` |
+| **providers** | Concrete backend implementations: `laravel_provider`, `supabase_provider` | `core`, `skeleton` |
 | **concrete** | Reusable UI widgets (inputs, modals, scroll, media, sidebar) and utility tools (Linker, Clipboard, Sharer, NetworkChecker) | `core`, `skeleton` |
 | **action** | Bulk action system: ActionCubit, ActionHandler, ActionButton with confirmation dialogs | `core`, `skeleton`, `concrete` |
 | **impl/*** | 12 pluggable implementation packages for navigation, media, device info, notifications, etc. | varies |
@@ -48,6 +49,8 @@ core  ──▶  skeleton  ──▶  concrete  ──▶  action
 |-----|-------------|
 | [core.md](core.md) | Dependency Injection, HTTP client, Auth system, BLoCs, Router, Storage, Contracts, Extensions, Constants |
 | [skeleton.md](skeleton.md) | Base classes for API services, BLoC state management, Form/Filter/Editor handlers, HTTP response models |
+| [laravel_provider.md](laravel_provider.md) | Concrete implementation for Laravel-based backends |
+| [supabase_provider.md](supabase_provider.md) | Concrete implementation for Supabase-based backends |
 | [concrete.md](concrete.md) | UI widget library (inputs, modals, media, scroll, sidebar) and utility tools |
 | [action.md](action.md) | Bulk action system for batch operations on selected resources |
 | [impl.md](impl.md) | Pluggable implementations: GoRouter navigation, OneSignal push, media players, file picker, etc. |

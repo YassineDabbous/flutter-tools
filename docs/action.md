@@ -124,6 +124,9 @@ class ActionApiService extends BaseApiService {
 }
 ```
 
+> [!TIP]
+> Use `LaravelActionApiService` from the `laravel_provider` package when working with Laravel backends.
+
 Sends a multipart POST to `{baseUrl}/_action_` using `superRequestTransform`.
 
 ### `BaseAction` / `GeneralAction`

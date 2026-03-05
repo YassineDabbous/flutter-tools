@@ -315,17 +315,20 @@ ManageRelationRequest(
 All API services extend this to get a standardized CRUD interface with Retrofit:
 
 ```dart
-abstract class BaseApiService<Model, EditRequest, SearchRequest> {
-  Future<BasicResponse<Model>> show({required int id, SearchRequest? params});
-  Future<BasicResponse<Model>> showForEdit({required int id, SearchRequest? params});
+abstract class BaseApiService<Model, EditRequest, SearchRequest, ID> {
+  Future<BasicResponse<Model>> show({required ID id, SearchRequest? params});
+  Future<BasicResponse<Model>> showForEdit({required ID id, SearchRequest? params});
   Future<BasicResponse<List<Model>>> all({required SearchRequest request});
   Future<BasicResponse<PaginationResponse<Model>>> paging({required int page, required SearchRequest request});
-  Future<BasicResponse<int>> delete({required int id, SearchRequest? params});
-  Future<BasicResponse<int>> create(EditRequest request);
-  Future<BasicResponse<int>> update({required int id, required EditRequest request});
-  Future<BasicResponse> manageRelations({required int id, required ManageRelationRequest request});
+  Future<BasicResponse<ID>> delete({required ID id, SearchRequest? params});
+  Future<BasicResponse<ID>> create(EditRequest request);
+  Future<BasicResponse<ID>> update({required ID id, required EditRequest request});
+  Future<BasicResponse> manageRelations({required ID id, required ManageRelationRequest request});
 }
 ```
+
+> [!TIP]
+> Use `LaravelApiService` or `SupabaseApiService` from their respective provider packages instead of implementing this from scratch.
 
 ---
 

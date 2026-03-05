@@ -139,68 +139,78 @@ class ProductFilter extends DynamicQueryRequest<ProductFilter> {
 
 ## Step 4: Define the API Service
 
+Depending on your backend, extend the appropriate provider base class. For Laravel:
+
 ```dart
 // product_api.dart
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:core/core.dart';
 import 'package:skeleton/skeleton.dart';
+import 'package:laravel_provider/laravel_provider.dart';
 
 part 'product_api.g.dart';
 
-@RestApi(baseUrl: '/products')
-abstract class ProductApiService extends BaseApiService<Product, ProductRequest, ProductFilter> {
+@RestApi()
+abstract class ProductApiService extends LaravelApiService<Product, ProductRequest, ProductFilter, int> {
   factory ProductApiService(Dio dio, {String? baseUrl}) = _ProductApiService;
 
   factory ProductApiService.instance() =>
       ProductApiService(Core.get<BaseDio>().dio, baseUrl: Core.get<Config>().baseUrl);
 
   @override
-  @GET('/{id}')
-  Future<BasicResponse<Product>> show({
+  @GET('/products/{id}')
+  Future<ApiResponse<Product>> show({
     @Path('id') required int id,
     @Queries() ProductFilter? params,
   });
 
   @override
-  @GET('')
-  Future<BasicResponse<PaginationResponse<Product>>> paging({
+  @GET('/products')
+  Future<ApiResponse<PaginatedResponse<Product>>> paging({
     @Query('page') required int page,
     @Queries() required ProductFilter request,
   });
 
   @override
-  @POST('')
-  Future<BasicResponse<int>> create(@Body() ProductRequest request);
+  @POST('/products')
+  Future<ApiResponse<int>> create(@Body() ProductRequest request);
 
   @override
-  @PUT('/{id}')
-  Future<BasicResponse<int>> update({
+  @PUT('/products/{id}')
+  Future<ApiResponse<int>> update({
     @Path('id') required int id,
     @Body() required ProductRequest request,
   });
 
   @override
-  @DELETE('/{id}')
-  Future<BasicResponse<int>> delete({
+  @DELETE('/products/{id}')
+  Future<ApiResponse<int>> delete({
     @Path('id') required int id,
     @Queries() ProductFilter? params,
   });
 }
 ```
 
+> [!TIP]
+> If using Supabase, extend `SupabaseApiService` instead and use `String` (UUID) for the ID type.
+
 ## Step 5: Define the BLoC
+
+Mix in the provider-specific BLoC traits to handle the data fetching logic automatically.
 
 ```dart
 // product_cubit.dart
 import 'package:skeleton/skeleton.dart';
+import 'package:laravel_provider/laravel_provider.dart';
 
 part 'product_state.dart';
 
 class ProductCubit extends MyBaseBloc<ProductApiService, ProductState>
     with
-        CrudBloc<ProductApiService, ProductState, Product, ProductRequest, ProductFilter>,
-        PaginationBloc<ProductApiService, ProductState, Product, ProductFilter> {
+        CrudBloc<ProductApiService, ProductState, Product, ProductRequest, ProductFilter, int>,
+        PaginationBloc<ProductApiService, ProductState, Product, ProductFilter>,
+        LaravelPaginationBloc<ProductApiService, ProductState, Product, ProductFilter, int> {
 
   ProductCubit() : super(bs: ProductState());
 
@@ -209,23 +219,19 @@ class ProductCubit extends MyBaseBloc<ProductApiService, ProductState>
 
   @override
   Future<Product> one({required int id, ProductFilter? params}) async =>
-      (await handle(http().show(id: id, params: params)))!;
+      (await handle(() => http().show(id: id, params: params))).data!;
 
   @override
   Future<int> save({required int id, required ProductRequest request}) async =>
-      (await handle(
+      (await handle(() =>
         id != 0
           ? http().update(id: id, request: request)
           : http().create(request),
-      ))!;
+      )).data!;
 
   @override
   Future destroy({required int id, ProductFilter? params}) async =>
-      await handle(http().delete(id: id, params: params));
-
-  @override
-  Future<PaginationResponse<Product>> load() async =>
-      (await handle(http().paging(page: page, request: filter)))!;
+      await handle(() => http().delete(id: id, params: params));
 }
 ```
 
