@@ -49,7 +49,7 @@ androidx
 demo
 .trash
 .dart_tool
-supabase_provider/
+# supabase_provider/
 laravel_provider/
 # architecture_proposal/
 
