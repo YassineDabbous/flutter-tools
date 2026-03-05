@@ -2,17 +2,17 @@
 
 ## 1. Auth Management
 
-Supabase has a built-in `GoTrue` auth system. To integrate it with Caky's `AuthLocalManager`, you should wrap the Supabase auth listener.
+Supabase has a built-in `GoTrue` auth system. To integrate it with the SDK's `AuthLocalManager`, you should wrap the Supabase auth listener.
 
 ### Implementation Pattern
 
-Modify `AuthLocalManager` (or a subclass) to listen to Supabase auth changes:
+Use `SupabaseAuthBridge` to listen to Supabase auth changes and sync them with the local manager:
 
 ```dart
-class SupabaseAuthManager extends AuthLocalManager {
+class SupabaseAuthBridge extends AuthLocalManager {
   final SupabaseClient client;
 
-  SupabaseAuthManager(this.client) {
+  SupabaseAuthBridge(this.client) {
     _listen();
   }
 
@@ -20,12 +20,19 @@ class SupabaseAuthManager extends AuthLocalManager {
     client.auth.onAuthStateChange.listen((data) {
       final session = data.session;
       if (session != null) {
-        // Map Supabase User to Caky AuthResponse
-        final cakyUser = AuthResponse(
+        // Map Supabase User to SDK AuthResponse
+        final sdkAuth = AuthResponse<String>(
           token: session.accessToken,
-          user: User(id: session.user.id, name: session.user.email),
+          user: AuthUser<String>(
+            id: session.user.id, 
+            name: session.user.email ?? 'Unknown',
+            type: 'user',
+            photo: session.user.userMetadata?['avatar_url'],
+          ),
+          abilities: ['*'],
+          permissions: [],
         );
-        setAuth(cakyUser);
+        setAuth(sdkAuth);
       } else {
         logout();
       }
@@ -42,45 +49,36 @@ class SupabaseAuthManager extends AuthLocalManager {
 
 ## 2. Exception Mapping
 
-Supabase throws `PostgrestException` or `AuthException`. You need a new version of the `ExceptionHandler` mixin.
+Supabase throws `PostgrestException` or `AuthException`. These are mapped internally by `SupabaseApiService` to `AppFailure` types.
 
-### SupabaseExceptionHandler
+### Generic Failure Mapping
+
+In your Supabase implementation:
 
 ```dart
-mixin SupabaseExceptionHandler {
-  Exception ex(Object err) {
-    if (err is PostgrestException) {
-      // Map Supabase error codes to Caky exceptions
-      if (err.code == '23505') return ValidationException(bag: {'db': 'Unique constraint violation'});
-      if (err.code == 'PGRST116') return NotFoundException();
-      return ServerException(message: err.message);
-    }
-    
-    if (err is AuthException) {
-      return AuthException();
-    }
-
-    return err as Exception;
-  }
+if (err is PostgrestException) {
+  if (err.code == '23505') throw ValidationFailure(errors: {'db': 'Unique constraint violation'});
+  if (err.code == 'PGRST116') throw const NotFoundFailure();
+  throw ServerFailure(err.message);
 }
 ```
 
-## 3. Real-time Synchronization (Bonus)
+## 3. Real-time Synchronization
 
-One of Supabase's strengths is Real-time. Caky's `RealtimeSync` mixin can be easily adapted:
+One of Supabase's strengths is Real-time. This can be integrated by extending the `PaginationBloc`:
 
 ```dart
-mixin SupabaseRealtimeSync<T> on PaginationBloc<T> {
+mixin SupabaseRealtimeSync<T, F> on PaginationBloc<T, F> {
   void subscribe(String table) {
     Supabase.instance.client
       .from(table)
       .stream(primaryKey: ['id'])
       .listen((data) {
-        // Trigger a refresh or manually update the state list
-        refresh(); 
+        // Refresh the current page
+        load(); 
       });
   }
 }
 ```
 
-By adding these small "glue" components, the Caky SDK becomes a powerful Supabase framework.
+By adding these small "glue" components, the SDK becomes a powerful Supabase framework.

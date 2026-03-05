@@ -1,6 +1,6 @@
 # `core` Package
 
-> The foundational layer of the Caky SDK. Every other package depends on `core`.
+> The foundational layer of the SDK. Every other package depends on `core`.
 
 ---
 

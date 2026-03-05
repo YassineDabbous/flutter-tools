@@ -1,6 +1,6 @@
-# Caky Packages — Architecture & Documentation
+# SDK Packages — Architecture & Documentation
 
-> A modular Flutter SDK for building production-ready mobile & web apps backed by a Laravel-style API.
+> A modular Flutter SDK for building production-ready mobile & web apps.
 
 ---
 
@@ -66,6 +66,6 @@ core  ──▶  skeleton  ──▶  concrete  ──▶  action
 1. **Layered Architecture** — Each layer depends only on the layers below it; no circular dependencies.
 2. **Contract-First** — Interfaces in `core/contracts/` (e.g., `Notifier`, `Locator`, `DeviceInfo`, `NetworkInfo`) are implemented in `impl/` packages, making implementations swappable.
 3. **BLoC Pattern** — All business logic uses `flutter_bloc` Cubits. The `skeleton` package provides composable mixins (`CrudBloc`, `PaginationBloc`, `StatisticsBloc`) to avoid boilerplate.
-4. **Laravel Backend Alignment** — HTTP responses (`BasicResponse`, `PaginationResponse`), method spoofing for multipart PUT/PATCH, validation error handling (422), and the `DynamicQueryRequest` query builder are all designed to work seamlessly with a Laravel API.
+4. **Backend Alignment** — HTTP responses (`BasicResponse`, `PaginationResponse`), method spoofing for multipart PUT/PATCH, validation error handling (422), and the `DynamicQueryRequest` query builder are all designed to work seamlessly with both Laravel and Supabase APIs.
 5. **Dual-Token Auth** — Supports a root session token and per-profile active tokens for multi-account switching.
 6. **Code Generation** — Uses `json_serializable` + `retrofit_generator` for type-safe API clients and JSON serialization.
