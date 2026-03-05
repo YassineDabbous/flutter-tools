@@ -12,16 +12,15 @@ abstract class JsonableFromTo<T> extends Jsonable {
 
 abstract class SuperModel<T> extends JsonableFromTo<T> {}
 
-abstract class Identifiable {
-  int get id;
+abstract class Identifiable<T> {
+  T get id;
+  T getId() => id;
 }
 
 abstract class Labelable {
   String get label;
 }
 
-abstract class BaseModel extends Jsonable implements Identifiable, Labelable {
-  int getId() => id;
-
+abstract class BaseModel<T> extends Jsonable implements Identifiable<T>, Labelable {
   String getLabel() => label;
 }

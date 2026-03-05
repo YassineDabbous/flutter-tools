@@ -8,7 +8,7 @@ AuthLocalManager auth() => Core.get<AuthLocalManager>();
 /// Asynchronously retrieve current user.
 Future<AuthResponse?> user() => auth().getCurrentUser();
 
-/// Manages local persistence.
+/// Manages local persistence for authentication data.
 ///
 /// It handles two main tokens:
 /// 1. The token of the currently active profile ([currentUser.token]).
@@ -17,7 +17,7 @@ class AuthLocalManager {
   static const String _kKeyCurrentUser = 'current_user';
   static const String _kKeyRealToken = 'real_token';
 
-  AuthResponse? currentUser;
+  AuthResponse<dynamic>? currentUser;
   final SharedPrefHelper _prefs;
 
   /// Root token for managing associated profiles.
@@ -31,20 +31,20 @@ class AuthLocalManager {
   }
 
   /// Sets primary user (initial login). Saves both active profile and root token.
-  Future setAuth(AuthResponse auth) async {
+  Future setAuth(AuthResponse<dynamic> auth) async {
     currentUser = auth;
     await setRealAuthToken(auth.token);
     await setCurrentUser(auth);
 
     Core.get<I>().refresh();
-    logAuth.debug('DONE --------------------- USER SAVED LOCALY');
+    logAuth.debug('DONE --------------------- USER SAVED LOCALLY');
   }
 
   /// Sets user when switching profiles. Updates active profile only; root token remains.
-  Future setSwitchAccount(AuthResponse auth) async {
+  Future setSwitchAccount(AuthResponse<dynamic> auth) async {
     currentUser = auth;
     await setCurrentUser(auth);
-    logAuth.debug('DONE --------------------- USER SAVED LOCALY');
+    logAuth.debug('DONE --------------------- USER SAVED LOCALLY');
   }
 
   /// Clears active profile but keeps root token (allows re-listing profiles).

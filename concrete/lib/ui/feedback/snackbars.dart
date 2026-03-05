@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Helper for showing specialized Snackbars.
-class CakySnackbars {
+class AppSnackbars {
   static void showSuccess(BuildContext context, String message) {
     _show(context, message, Colors.green, Icons.check_circle_outline);
   }

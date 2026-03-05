@@ -2,9 +2,9 @@ import 'package:core/core.dart';
 import 'package:skeleton/skeleton.dart';
 
 /// Maker classes (like `UserMaker`, `PostMaker`) are used as helpers for Create/Edit screens and EditForm.
-abstract class BaseMaker<TModel extends Jsonable, TRequest extends SuperModel<TRequest>> {
-  int id = 0; // default to 0 for creation forms
-  late TRequest form; // resource fields that will be modified and submitteds
+abstract class BaseMaker<TModel extends Jsonable, TRequest extends Jsonable, ID> {
+  ID? id; // nullable ID for creation forms
+  late TRequest form; // resource fields that will be modified and submitted
   late TRequest fixed; // unmodifiable resource fields
 
   final Map<String, dynamic> _attachments = {};
@@ -27,7 +27,7 @@ abstract class BaseMaker<TModel extends Jsonable, TRequest extends SuperModel<TR
   /// Clears all attachments.
   void clearAttachments() => _attachments.clear();
 
-  /// true if form valide, used usualy as a proxy to FormState.validate()
+  /// true if form valid, used usually as a proxy to FormState.validate()
   bool Function()? validate;
 
   /// the function that will be triggered to fill form inputs (textfields) using the `TRequest form`
@@ -42,14 +42,17 @@ abstract class BaseMaker<TModel extends Jsonable, TRequest extends SuperModel<TR
 
   //
   BaseMaker({TRequest? request, TRequest? fixed, TModel? model}) : assert(model == null || request == null) {
-    // form = model != null ? modelToRequest(model) : (request ?? newInstance);
     this.fixed = fixed ?? newInstance;
     form = (request ?? newInstance);
     if (model != null) {
       fillFromModel(model);
     }
     try {
-      id = (model as dynamic).id ?? id;
+      if (model is Identifiable<ID>) {
+        id = model.id;
+      } else {
+        id = (model as dynamic).id;
+      }
     } catch (e) {
       logCtrl.warning('no id in this model class');
     }
@@ -63,8 +66,12 @@ abstract class BaseMaker<TModel extends Jsonable, TRequest extends SuperModel<TR
   /// fill `TRequest form` using `TModel` instance
   void fillFromModel(TModel model) {
     try {
-      /// get the id from the data model
-      id = (model as dynamic).id ?? id;
+      if (model is Identifiable<ID>) {
+        id = model.id;
+      } else {
+        /// get the id from the data model
+        id = (model as dynamic).id;
+      }
     } catch (e) {
       logCtrl.warning('no id in this model class');
     }
@@ -72,13 +79,18 @@ abstract class BaseMaker<TModel extends Jsonable, TRequest extends SuperModel<TR
   }
 
   /// Getter will be used as the final merged request (modified data + fixed data) that will be submitted to the backend
-  TRequest get request => form.merge(fixed);
+  TRequest get request {
+    if (form is JsonableFromTo && fixed is JsonableFromTo) {
+      return (form as dynamic).merge(fixed);
+    }
+    return form;
+  }
 
   /// Transform a data model to request instance
-  TRequest modelToRequest(TModel model) => form.fromJson(model.toJson());
+  TRequest modelToRequest(TModel model) => jsonToRequest(model.toJson());
 
   /// Transform a data map to request instance
-  TRequest jsonToRequest(Map<String, dynamic> json) => form.fromJson(json);
+  TRequest jsonToRequest(Map<String, dynamic> json);
 
   /// Helper to create new request class instance
   TRequest get newInstance;

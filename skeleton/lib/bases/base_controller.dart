@@ -1,29 +1,33 @@
 import 'package:core/core.dart';
 import 'package:skeleton/skeleton.dart';
 
-abstract class BaseController<TFilterRequest extends SuperModel, TModel> {
+/// Base class for UI controllers that manage state for a specific resource type.
+/// 
+/// Type Parameters:
+/// - [TFilterRequest]: The request model used for filtering and searching.
+/// - [TModel]: The data model for the resource.
+/// - [ID]: The identifier type (defaults to `dynamic` to support both int and String).
+abstract class BaseController<TFilterRequest extends SuperModel<TFilterRequest>, TModel, ID> {
   /// whether dealing with Admin API
   bool forAdmin;
 
   /// Model type ("user" for "User")
   String type;
 
-  /// List of model fiels, used with HTTP requests to get only needed model fields.
-  List<String> fields; //  = const ['id', 'name', 'employees_count', 'employees_sum_salary'];
+  /// List of model fields, used with HTTP requests to get only needed model fields.
+  List<String> fields;
 
   /// Search filter
   late TFilterRequest filter;
 
   /// Fixed Filter fields
-  late TFilterRequest fixed; // for fixed params in filter, used to prevent user from clearing the whole filter.
+  late TFilterRequest fixed; 
 
   /// Make a fresh filter request
   Function()? refresh;
 
-  // Function(Model item, UserAction action, int index)? action;
-
-  // Run a user action on list of items
-  Function(List<TModel> items, UserAction action)? bulkAction; // , bool forceAll= false
+  /// Run a user action on list of items
+  Function(List<TModel> items, UserAction action)? bulkAction;
 
   /// Validates filter form
   bool Function()? validateFilter;
@@ -65,9 +69,6 @@ abstract class BaseController<TFilterRequest extends SuperModel, TModel> {
 
   /// Fill filter from query parameters
   void fillFromQuery(Map<String, String> params) {
-    // fillFromJson(params.toDynamic); <-  if params=={} this will cause creating new empty filter.
-
-    // merging params with current filter
     filter = filter.merge(newInstance.fromJson(params));
   }
 
@@ -81,57 +82,23 @@ abstract class BaseController<TFilterRequest extends SuperModel, TModel> {
   //
 
   bool enableSelection;
-  final Function(List<int> ids)? onIdsSelection;
+  final Function(List<ID> ids)? onIdsSelection;
   bool get isSelectionEnabled => enableSelection || onIdsSelection != null;
 
   /// Selected indexes in a table/grid
   List<int> selectedIndexes = [];
 
   /// Initialy selected IDs
-  List<int>? initialySelectedIds;
+  List<ID>? initialySelectedIds;
 
   /// IDs of selected items
-  List<int> selectedIds = [];
+  List<ID> selectedIds = [];
 
   /// Selection Listener
-  void onSelection(List<int> indexes, List<int> ids) {
+  void onSelection(List<int> indexes, List<ID> ids) {
     logUI.debug('selected ids are $ids');
     selectedIndexes = indexes;
     selectedIds = ids;
+    onIdsSelection?.call(ids);
   }
 }
-
-// abstract class BaseControllerx<TFilterRequest extends SuperModel<TFilterRequest>, TModel extends Jsonable> {
-//   late TFilterRequest filter;
-//   TFilterRequest? fixed; // for fixed params in filter,  ex: fix "account type === business" in Pages Screen
-//   // Function(Model item, UserAction action, int index)? action;
-//   Function()? refresh;
-//   //
-//   final Function(List<int> ids)? onSelection;
-//   List<int>? initialSelectedIds;
-//   //
-//   bool Function()? validateFilter;
-//   Function()? fillFilter;
-//   //
-//   BaseControllerx({
-//     TFilterRequest? filter,
-//     this.onSelection,
-//     this.initialSelectedIds,
-//   }) {
-//     this.filter = filter ?? newInstance;
-//   }
-
-//   void clear() {
-//     filter = fixed ?? newInstance;
-//   }
-
-//   TFilterRequest get newInstance;
-
-//   TFilterRequest get request => fixed == null ? filter : filter.merge(fixed!);
-
-//   fillFromQuery(Map<String, String> params) {
-//     fillFromJson(params.toDynamic);
-//   }
-
-//   fillFromJson(Map<String, dynamic> json) => newInstance.fromJson(json);
-// }

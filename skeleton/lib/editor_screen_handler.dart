@@ -14,7 +14,8 @@ mixin EditorHandler<
 
   @override
   void initState() {
-    if (maker.id == 0) {
+    // maker.id == null || maker.id == 0 || maker.id == ''
+    if (maker.id.isEmpty) {
       // creation screen can use query parameters as default values
       maker.fillFromQuery(Core.nav.queryParams());
     }

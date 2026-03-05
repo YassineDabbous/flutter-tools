@@ -2,14 +2,11 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'stats_response.g.dart';
 
+/// Standard interface for statistics data across any provider.
 @JsonSerializable(explicitToJson: true)
 class StatisticsResponse {
   final StatMeta meta;
-  
-  // Summary might be null if specific comparison logic fails or isn't requested, 
-  // though your backend defaults it usually.
   final StatsSummary? summary;
-  
   final List<StatPoint> dataset;
 
   StatisticsResponse({
@@ -22,24 +19,17 @@ class StatisticsResponse {
   Map<String, dynamic> toJson() => _$StatisticsResponseToJson(this);
 }
 
-// ==========================================
-// METADATA
-// ==========================================
-
 @JsonSerializable()
 class StatMeta {
   final String metric;
-  final String currency;
-  final String timezone;
-  
-  // Granularity might be a string (e.g. "created_at:month") or list of strings
-  // dynamic is safest here, or use String? if backend joins them.
+  final String? currency;
+  final String? timezone;
   final dynamic granularity; 
 
   StatMeta({
     required this.metric,
-    required this.currency,
-    required this.timezone,
+    this.currency,
+    this.timezone,
     this.granularity,
   });
 
@@ -47,16 +37,10 @@ class StatMeta {
   Map<String, dynamic> toJson() => _$StatMetaToJson(this);
 }
 
-// ==========================================
-// SUMMARY (The Big Number)
-// ==========================================
-
 @JsonSerializable(explicitToJson: true)
 class StatsSummary {
   final double value;
   final String formatted;
-  
-  // Trend is optional (only exists if _compare is used or specific backend logic)
   final StatTrend? trend;
 
   StatsSummary({
@@ -84,27 +68,18 @@ class StatTrend {
   factory StatTrend.fromJson(Map<String, dynamic> json) => _$StatTrendFromJson(json);
   Map<String, dynamic> toJson() => _$StatTrendToJson(this);
   
-  // UI Helpers
   bool get isPositive => direction == 'up';
   bool get isNegative => direction == 'down';
 }
 
-// ==========================================
-// DATASET (The Chart Data)
-// ==========================================
-
 @JsonSerializable(explicitToJson: true)
 class StatPoint {
   final String label;
-  
-  // The raw grouping keys (e.g. {'status': 'paid', 'country': 'US'})
-  final Map<String, String?> group;
-  
+  final Map<String, dynamic> group;
   final double value;
   
   @JsonKey(name: 'previous_value')
   final double? previousValue;
-  
   final StatTransforms? transforms;
 
   StatPoint({
@@ -125,7 +100,7 @@ class StatTransforms {
   final double? cumulative;
 
   @JsonKey(name: 'growth')
-  final double? growth; // Percentage
+  final double? growth; 
 
   StatTransforms({this.cumulative, this.growth});
 

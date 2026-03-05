@@ -22,7 +22,7 @@ mixin PaginationState<StateType, Model> on MyBaseState<StateType> {
 //
 //
 
-mixin PaginationBloc<ApiType extends BaseApiService<dynamic, dynamic, dynamic>, BaseState extends PaginationState<BaseState, Model>, Model, SearchFilter>
+mixin PaginationBloc<ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>, BaseState extends PaginationState<BaseState, Model>, Model, SearchFilter>
     on MyBaseBloc<ApiType, BaseState> {
   /// In-memory cache for loaded results
   List<Model> lista = [];
@@ -44,7 +44,7 @@ mixin PaginationBloc<ApiType extends BaseApiService<dynamic, dynamic, dynamic>, 
   bool offlinePaging = false;
 
   /// Generate page numbers from `total` and `total`.
-  List<int> get pages => total == null || perPage == null ? [] : List.generate((total! / total!).ceil(), (index) => index).map((e) => e + 1).toList();
+  List<int> get pages => total == null || perPage == null || perPage == 0 ? [] : List.generate((total! / perPage!).ceil(), (index) => index).map((e) => e + 1).toList();
 
   /// Initialize default values
   @override
@@ -197,7 +197,7 @@ mixin PaginationBloc<ApiType extends BaseApiService<dynamic, dynamic, dynamic>, 
 
   /// Call the API/Repository for resources paging.
   @protected
-  Future<PaginationResponse<Model>> load();
+  Future<PaginatedResponse<Model>> load();
 
   /// Load all results at once
   /// Call the API/Repository to get all resources at once.

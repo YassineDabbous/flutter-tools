@@ -13,10 +13,10 @@ export 'contracts/contracts.dart';
 export 'constants/constants.dart';
 
 export 'storage/local_storage.dart';
-export 'http/http.dart';
 export 'extensions/extensions.dart';
 
 export 'di/di.dart';
 export 'router/router.dart';
 
+export 'logic/failures.dart';
 export 'package:localization/localization.dart';
