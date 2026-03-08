@@ -14,24 +14,33 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
       return handler.next(err);
     }
 
-    if (_isRefreshing) {
+    // Don't refresh if the request itself is a refresh request or if we're already refreshing
+    if (err.requestOptions.path.contains('auth/refresh') || _isRefreshing) {
       return handler.next(err);
     }
 
     _isRefreshing = true;
     try {
-      final newToken = await _refreshToken();
+      final newToken = await _refreshToken(err.requestOptions.baseUrl);
       if (newToken != null) {
         await _authManager.updateToken(newToken);
-        
+
         final options = err.requestOptions;
         options.headers['Authorization'] = 'Bearer $newToken';
-        
-        final response = await _dio.fetch(options);
-        return handler.resolve(response);
+
+        try {
+          final response = await _dio.fetch(options);
+          return handler.resolve(response);
+        } catch (retryError) {
+          return handler.next(retryError is DioException ? retryError : err);
+        }
+      } else {
+        logAuth.error('○○○○○○○ Token refresh returned null ○○○○○○○');
+        Core.get<AuthenticationCubit>().logoutHard();
       }
-    } catch (e) {
-      // Refresh failed
+    } catch (refreshError) {
+      logAuth.error('○○○○○○○ Token refresh failed: $refreshError ○○○○○○○');
+      Core.get<AuthenticationCubit>().logoutHard();
     } finally {
       _isRefreshing = false;
     }
@@ -39,10 +48,15 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
     handler.next(err);
   }
 
-  Future<String?> _refreshToken() async {
-    final response = await _dio.post('/auth/refresh', options: Options(
-      headers: {'Authorization': 'Bearer ${_authManager.currentUser?.token}'},
-    ));
+  Future<String?> _refreshToken(String baseUrl) async {
+    // Use a clean Dio instance to avoid interceptor recursion
+    final refreshDio = Dio(BaseOptions(baseUrl: baseUrl));
+    final response = await refreshDio.post(
+      '/auth/refresh',
+      options: Options(
+        headers: {'Authorization': 'Bearer ${_authManager.currentUser?.token}'},
+      ),
+    );
     return response.data?['token'];
   }
 }

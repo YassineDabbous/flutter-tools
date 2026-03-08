@@ -18,5 +18,5 @@ export 'extensions/extensions.dart';
 export 'di/di.dart';
 export 'router/router.dart';
 
-export 'logic/failures.dart';
+export 'logic/logic.dart';
 export 'package:localization/localization.dart';

@@ -2,12 +2,16 @@ import 'package:core/core.dart';
 import 'package:skeleton/skeleton.dart';
 
 /// Base class for UI controllers that manage state for a specific resource type.
-/// 
+///
 /// Type Parameters:
 /// - [TFilterRequest]: The request model used for filtering and searching.
 /// - [TModel]: The data model for the resource.
 /// - [ID]: The identifier type (defaults to `dynamic` to support both int and String).
-abstract class BaseController<TFilterRequest extends SuperModel<TFilterRequest>, TModel, ID> {
+abstract class BaseController<
+  TFilterRequest extends SuperModel<TFilterRequest>,
+  TModel,
+  ID
+> {
   /// whether dealing with Admin API
   bool forAdmin;
 
@@ -21,7 +25,7 @@ abstract class BaseController<TFilterRequest extends SuperModel<TFilterRequest>,
   late TFilterRequest filter;
 
   /// Fixed Filter fields
-  late TFilterRequest fixed; 
+  late TFilterRequest fixed;
 
   /// Make a fresh filter request
   Function()? refresh;
@@ -42,7 +46,7 @@ abstract class BaseController<TFilterRequest extends SuperModel<TFilterRequest>,
     TFilterRequest? filter,
     TFilterRequest? fixed,
     this.onIdsSelection,
-    this.initialySelectedIds,
+    this.initiallySelectedIds,
     this.forAdmin = false,
     this.enableSelection = true,
     this.fields = const [],
@@ -89,7 +93,7 @@ abstract class BaseController<TFilterRequest extends SuperModel<TFilterRequest>,
   List<int> selectedIndexes = [];
 
   /// Initialy selected IDs
-  List<ID>? initialySelectedIds;
+  List<ID>? initiallySelectedIds;
 
   /// IDs of selected items
   List<ID> selectedIds = [];

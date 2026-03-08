@@ -10,13 +10,25 @@ class ActionButton extends StatelessWidget {
   final double? maxWidth;
   final double? maxHeight;
 
-  const ActionButton({super.key, required this.action, required this.icon, required this.label, this.maxWidth, this.maxHeight});
-  factory ActionButton.delete({Key? key, required BaseController controller}) => ActionButton(
-    key: key,
-    label: 'delete'.i18n(),
-    icon: const Icon(Icons.delete),
-    action: GeneralAction(controller: controller, route: 'delete'.i18n(), description: 'delete all selected items'.i18n()),
-  );
+  const ActionButton({
+    super.key,
+    required this.action,
+    required this.icon,
+    required this.label,
+    this.maxWidth,
+    this.maxHeight,
+  });
+  factory ActionButton.delete({Key? key, required BaseController controller}) =>
+      ActionButton(
+        key: key,
+        label: 'delete'.i18n(),
+        icon: const Icon(Icons.delete),
+        action: GeneralAction(
+          controller: controller,
+          route: 'delete'.i18n(),
+          description: 'delete all selected items'.i18n(),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +55,9 @@ class GeneralActionView extends ActionForm<GeneralAction> {
   State<ActionForm> createState() => _GeneralActionViewState();
 }
 
-class _GeneralActionViewState extends ControlledState<ActionForm<GeneralAction>, ActionCubit> with ActionHandler {
+class _GeneralActionViewState
+    extends ControlledState<ActionForm<GeneralAction>, ActionCubit>
+    with ActionHandler {
   @override
   fillAction() {}
 
@@ -52,6 +66,9 @@ class _GeneralActionViewState extends ControlledState<ActionForm<GeneralAction>,
 
   @override
   Widget? actionView(BuildContext context, ActionState state) {
-    return Form(key: formkey, child: widget.action.formBuilder!.call(widget.action));
+    return Form(
+      key: formkey,
+      child: widget.action.formBuilder!.call(widget.action),
+    );
   }
 }

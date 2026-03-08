@@ -14,13 +14,11 @@ abstract class ActionForm<TAction extends BaseAction> extends StatefulWidget {
   });
 }
 
-mixin ActionHandler<TAction extends BaseAction> on ControlledState<ActionForm<TAction>, ActionCubit> {
+mixin ActionHandler<TAction extends BaseAction>
+    on ControlledState<ActionForm<TAction>, ActionCubit> {
   final GlobalKey<FormState> formkey = GlobalKey<FormState>();
   @override
   void initState() {
-    // widget.action.validateAction = () => formkey.currentState!.validate();
-    // widget.action.fillAction = fillAction;
-    // widget.action.runAction = runAction;
     super.initState();
   }
 
@@ -49,10 +47,6 @@ mixin ActionHandler<TAction extends BaseAction> on ControlledState<ActionForm<TA
     } else if (state is ActionValidationErrorState) {
       showSnackBar(context, 'validation error');
     } else if (state is ActionHandledState) {
-      // if (mounted) {
-      //   Navigator.of(context).pop();
-      // }
-      // widget.action.onHandled?.call(state.data.data);
       // await dialogInfoSuccess(context: context);
     } else {
       showSnackBar(context, 'unhandled action in this screen');
@@ -69,7 +63,6 @@ mixin ActionHandler<TAction extends BaseAction> on ControlledState<ActionForm<TA
         create: (context) => store,
         child: BlocListener<ActionCubit, ActionState>(
           listener: listener,
-          // child: BlocBuilder<ActionCubit, ActionState>(builder: (context, state) => actionView(context, state)),
           child: BlocBuilder<ActionCubit, ActionState>(
             builder: (context, state) {
               return Stack(
@@ -81,7 +74,12 @@ mixin ActionHandler<TAction extends BaseAction> on ControlledState<ActionForm<TA
                         crossAxisAlignment: CrossAxisAlignment.start,
                         // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          Text(widget.action.title?.i18n() ?? widget.action.route.i18n(), textAlign: TextAlign.start, style: context.textTheme.titleLarge),
+                          Text(
+                            widget.action.title?.i18n() ??
+                                widget.action.route.i18n(),
+                            textAlign: TextAlign.start,
+                            style: context.textTheme.titleLarge,
+                          ),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,28 +88,31 @@ mixin ActionHandler<TAction extends BaseAction> on ControlledState<ActionForm<TA
                                   Padding(
                                     padding: const EdgeInsets.all(4.0),
                                     child: Text(
-                                      widget.action.description!.replaceAll(':count', '${widget.action.controller.selectedIds.length}').i18n(),
+                                      widget.action.description!
+                                          .replaceAll(
+                                            ':count',
+                                            '${widget.action.controller.selectedIds.length}',
+                                          )
+                                          .i18n(),
                                       textAlign: TextAlign.start,
                                       style: context.textTheme.bodyMedium,
                                     ),
                                   ),
                                 const Divider(),
-                                if (state is ActionValidationErrorState) ValidationMessage(bag: state.bag),
-                                // if (widget.action.formBuilder != null) ...[
-                                //   const SizedBox(height: Sz.md),
-                                //   Expanded(
-                                //     child: SingleChildScrollView(child: widget.action.formBuilder!.call(widget.action)),
-                                //   ),
-                                //   const Divider(),
-                                //   const SizedBox(height: Sz.md),
-                                // ],
+                                if (state is ActionValidationErrorState)
+                                  ValidationMessage(bag: state.bag),
                                 if (showActionView) ...[
                                   const SizedBox(height: Sz.md),
-                                  Expanded(child: SingleChildScrollView(child: actionView(context, state))),
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      child: actionView(context, state),
+                                    ),
+                                  ),
                                   const Divider(),
                                   const SizedBox(height: Sz.md),
                                 ],
-                                if (state is ActionErrorState) Message.error(message: state.message),
+                                if (state is ActionErrorState)
+                                  Message.error(message: state.message),
                               ],
                             ),
                           ),
@@ -120,22 +121,27 @@ mixin ActionHandler<TAction extends BaseAction> on ControlledState<ActionForm<TA
                             children: [
                               TextButton.icon(
                                 label: Text('confirm'.i18n()),
-                                icon: const Icon(Icons.done, color: Colors.green),
+                                icon: const Icon(
+                                  Icons.done,
+                                  color: Colors.green,
+                                ),
                                 onPressed: () {
-                                  // if (widget.action.validateAction?.call() ?? false) {
-                                  //   widget.action.fillAction?.call();
-                                  //   widget.action.runAction?.call();
                                   if (validateAction()) {
                                     fillAction();
                                     runAction();
                                   } else {
-                                    showSnackBar(context, 'unvalid form');
+                                    logUI.warning(
+                                      '○○○○○○○ invalid form ○○○○○○○',
+                                    );
                                   }
                                 },
                               ),
                               TextButton.icon(
                                 label: Text('cancel'.i18n()),
-                                icon: const Icon(Icons.close, color: Colors.red),
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () => Navigator.of(context).pop(),
                               ),
                             ],
@@ -159,13 +165,22 @@ mixin ActionHandler<TAction extends BaseAction> on ControlledState<ActionForm<TA
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              const Icon(Icons.done_all, size: 80, color: Colors.green),
-                              Text(state.data.message ?? '', textAlign: TextAlign.center),
+                              const Icon(
+                                Icons.done_all,
+                                size: 80,
+                                color: Colors.green,
+                              ),
+                              Text(
+                                state.data.message ?? '',
+                                textAlign: TextAlign.center,
+                              ),
                               if (widget.action.onHandled != null)
                                 TextButton(
                                   onPressed: () {
                                     Navigator.of(context).pop();
-                                    widget.action.onHandled?.call(state.data.data);
+                                    widget.action.onHandled?.call(
+                                      state.data.data,
+                                    );
                                   },
                                   child: Text('ok'.i18n()),
                                 ),

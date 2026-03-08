@@ -32,9 +32,7 @@ class RetryInterceptor extends Interceptor {
       final response = await _dio.fetch(err.requestOptions);
       handler.resolve(response);
     } catch (e) {
-      if (e is! DioException) {
-        handler.next(err);
-      }
+      handler.next(e is DioException ? e : err);
     }
   }
 

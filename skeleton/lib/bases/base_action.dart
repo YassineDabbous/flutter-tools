@@ -22,7 +22,7 @@ abstract class BaseAction {
     _request = ActionRequest(
       action: route,
       type: controller.type,
-      keys: controller.initialySelectedIds,
+      keys: controller.initiallySelectedIds,
       filter: controller.request.toJson(),
     );
   }
@@ -38,10 +38,6 @@ abstract class BaseAction {
     _request.payload ??= {};
     _request.payload?[key] = value;
   }
-
-  // bool Function()? validateAction;
-  // Function()? fillAction;
-  // Function()? runAction;
 }
 
 abstract class ActionApiService
@@ -80,13 +76,13 @@ class ActionRequest extends SuperModel<ActionRequest> {
   Map<String, dynamic> toJson() {
     var json = <String, dynamic>{};
     if (payload != null) {
-      json.addAll(payload!..removeWhere((key, value) => value == null));
+      json.addAll(Map.of(payload!)..removeWhere((key, value) => value == null));
     }
     if (filter != null) {
       // print('filter ====>');
       // print(filter.toString());
       json.addAll(
-        filter!
+        Map.of(filter!)
           ..removeWhere((key, value) => value == null)
           ..removeWhere((key, value) => value == ''),
       );

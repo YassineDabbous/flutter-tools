@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:skeleton/skeleton.dart';
 
@@ -26,6 +27,14 @@ mixin PaginationState<StateType, Model> on MyBaseState<StateType> {
 //
 //
 
+enum PagingMode {
+  /// Appends new pages to the existing list (Standard for Mobile feeds)
+  infiniteScroll,
+
+  /// Replaces the current page (Standard for Admin Tables)
+  paginated,
+}
+
 mixin PaginationBloc<
   ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>,
   BaseState extends PaginationState<BaseState, Model>,
@@ -33,6 +42,9 @@ mixin PaginationBloc<
   SearchFilter
 >
     on MyBaseBloc<ApiType, BaseState> {
+  /// Timer for debouncing search/refresh calls
+  Timer? _debounceTimer;
+
   /// In-memory cache for loaded results
   List<Model> lista = [];
 
@@ -51,6 +63,14 @@ mixin PaginationBloc<
 
   /// Paging the previously loaded results
   bool offlinePaging = false;
+
+  /// Guard to prevent concurrent paging requests
+  bool _isMoving = false;
+
+  /// How to handle new data pages.
+  /// Defaults to [PagingMode.paginated] if [forAdmin] is true, else [PagingMode.infiniteScroll].
+  PagingMode get pagingMode =>
+      forAdmin ? PagingMode.paginated : PagingMode.infiniteScroll;
 
   /// Generate page numbers from `total` and `total`.
   List<int> get pages => total == null || perPage == null || perPage == 0
@@ -96,7 +116,9 @@ mixin PaginationBloc<
 
   @protected
   Future moveOffline({bool back = false, int? toPage}) async {
+    if (_isMoving) return;
     int aux = page;
+    _isMoving = true;
     try {
       if (toPage != null) {
         page = toPage;
@@ -109,10 +131,6 @@ mixin PaginationBloc<
       emit(bs.pageLoading);
 
       final l = _loadOffline();
-      // if (forAdmin) {
-      //   lista.clear(); // DON'T CLEAR loaded resources on offline mode
-      // }
-      // lista.addAll(l);
       maxReached = l.isEmpty;
       emit(bs.pageLoaded(data: l, maxReached: maxReached, nextPage: page));
     } catch (e) {
@@ -122,13 +140,17 @@ mixin PaginationBloc<
         back ? page++ : page--;
       }
       emit(mapErrorToState(e));
+    } finally {
+      _isMoving = false;
     }
   }
 
   /// Move to a specified page or loading next/previous page
   @protected
   Future move({bool back = false, int? toPage}) async {
+    if (_isMoving) return;
     int aux = page;
+    _isMoving = true;
     try {
       if (toPage != null) {
         page = toPage;
@@ -143,10 +165,29 @@ mixin PaginationBloc<
       total = p.total;
       perPage = p.perPage;
       final l = p.data;
-      if (forAdmin) {
+      if (pagingMode == PagingMode.paginated) {
         lista.clear();
+        lista.addAll(l);
+      } else {
+        // Prevent duplicates in infinite scroll
+        final existingIds = lista.map((e) {
+          if (e is Identifiable) return e.id;
+          try {
+            return (e as dynamic).id;
+          } catch (_) {
+            return e.hashCode;
+          }
+        }).toSet();
+
+        for (final item in l) {
+          final dynamic id = item is Identifiable
+              ? item.id
+              : (item as dynamic).id;
+          if (!existingIds.contains(id)) {
+            lista.add(item);
+          }
+        }
       }
-      lista.addAll(l);
       maxReached = l.isEmpty;
       emit(bs.pageLoaded(data: l, maxReached: maxReached, nextPage: page));
     } catch (e) {
@@ -156,18 +197,81 @@ mixin PaginationBloc<
         back ? page++ : page--;
       }
       emit(mapErrorToState(e));
+    } finally {
+      _isMoving = false;
     }
   }
 
   // Reset and Get the first resources page
   @mustCallSuper
   Future refresh({SearchFilter? filter}) async {
+    _debounceTimer?.cancel();
     lista.clear();
     page = 0;
     maxReached = false;
     this.filter = filter ?? this.filter;
     emit(bs.initial);
     await loadNext();
+  }
+
+  /// Debounced version of [refresh].
+  /// Useful for search fields to avoid hitting the API on every keystroke.
+  void debouncedRefresh({
+    SearchFilter? filter,
+    Duration duration = const Duration(milliseconds: 300),
+  }) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(duration, () => refresh(filter: filter));
+  }
+
+  // --- Local List Management (Optimistic UI) ---
+
+  /// Emits the current state with the updated [lista].
+  void _emitCurrentPage() {
+    emit(
+      bs.pageLoaded(
+        data: List.of(lista),
+        maxReached: maxReached,
+        nextPage: page,
+      ),
+    );
+  }
+
+  /// Remove an item from the local list by its ID.
+  /// Note: The [Model] must implement [Identifiable] or have an 'id' property.
+  void removeLocal(dynamic id) {
+    lista.removeWhere((item) {
+      if (item is Identifiable) return item.id == id;
+      try {
+        return (item as dynamic).id == id;
+      } catch (_) {
+        return false;
+      }
+    });
+    _emitCurrentPage();
+  }
+
+  /// Add an item to the beginning of the local list.
+  void prependLocal(Model item) {
+    lista.insert(0, item);
+    _emitCurrentPage();
+  }
+
+  /// Update an item in the local list if it exists.
+  void updateLocal(Model item) {
+    final dynamic id = item is Identifiable ? item.id : (item as dynamic).id;
+    final index = lista.indexWhere((e) {
+      if (e is Identifiable) return e.id == id;
+      try {
+        return (e as dynamic).id == id;
+      } catch (_) {
+        return false;
+      }
+    });
+    if (index >= 0) {
+      lista[index] = item;
+      _emitCurrentPage();
+    }
   }
 
   // Refresh the current resources page.
@@ -221,4 +325,10 @@ mixin PaginationBloc<
   Future<List<Model>> loadAll() {
     throw UnimplementedError();
   } // async => (await handle(http().all(request: filter))) ?? [];
+
+  @override
+  Future<void> close() {
+    _debounceTimer?.cancel();
+    return super.close();
+  }
 }

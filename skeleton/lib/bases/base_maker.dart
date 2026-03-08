@@ -1,5 +1,14 @@
 import 'package:core/core.dart';
+import 'dart:async';
+import 'package:meta/meta.dart';
 import 'package:skeleton/skeleton.dart';
+
+/// Represents the progress of a file upload.
+class UploadProgress {
+  final String key;
+  final double progress; // 0.0 to 1.0
+  UploadProgress({required this.key, required this.progress});
+}
 
 /// Maker classes (like `UserMaker`, `PostMaker`) are used as helpers for Create/Edit screens and EditForm.
 abstract class BaseMaker<
@@ -7,6 +16,26 @@ abstract class BaseMaker<
   TRequest extends Jsonable,
   ID
 > {
+  /// Stream of upload progress updates
+  final StreamController<UploadProgress> _uploadProgress =
+      StreamController<UploadProgress>.broadcast();
+
+  /// Progress updates stream
+  Stream<UploadProgress> get uploadProgress => _uploadProgress.stream;
+
+  /// Report progress for a specific field/attachment
+  void reportProgress(String key, double progress) {
+    if (!_uploadProgress.isClosed) {
+      _uploadProgress.add(UploadProgress(key: key, progress: progress));
+    }
+  }
+
+  /// Clean up resources
+  @mustCallSuper
+  void dispose() {
+    _uploadProgress.close();
+  }
+
   ID? id; // nullable ID for creation forms
   late TRequest form; // resource fields that will be modified and submitted
   late TRequest fixed; // unmodifiable resource fields

@@ -2,12 +2,11 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:skeleton/skeleton.dart';
 
-// part 'dynamic_query_request.g.dart';
-
-// @JsonSerializable(genericArgumentFactories: true, includeIfNull: false)
+// don't use @JsonSerializable on abstract class.
 abstract class DynamicQueryRequest<T> extends SuperModel<T> {
   // @JsonKey(name: 'category.name')
   // final String? categoryName;
+
   // --- Pagination ---
   @JsonKey(name: 'page')
   int? page;
@@ -121,9 +120,3 @@ abstract class DynamicQueryRequest<T> extends SuperModel<T> {
     return this;
   }
 }
-
-  // factory DynamicQueryRequest.fromJson(Map<String, dynamic> json) =>
-  //     _$DynamicQueryRequestFromJson(json);
-
-  // Map<String, dynamic> toJson() => _$DynamicQueryRequestToJson(this);
-// }

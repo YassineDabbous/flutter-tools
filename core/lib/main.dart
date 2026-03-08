@@ -8,10 +8,12 @@ abstract class CrashMessenger {
   void log(String message);
 }
 
+/// ControlledState is widget state with a State manager `store` (usually a Bloc instance)
 /// Central static class providing easy access to core application services.
 class Core {
   /// Global key used to access the current [NavigatorState] for service-level navigation.
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   /// Shortcut to the current [BuildContext].
   static BuildContext? get ctx => navigatorKey.currentContext;
@@ -27,13 +29,15 @@ class Core {
   static AppNavigator get nav => get<AppNavigator>();
 
   // --- Dynamic Headers ---
+  static String? appSlogan;
   static final Map<String, HeaderProvider> _dynamicHeaders = {};
 
   static void registerHeader(String key, HeaderProvider provider) {
     _dynamicHeaders[key] = provider;
   }
 
-  static Map<String, HeaderProvider> get dynamicHeaders => Map.unmodifiable(_dynamicHeaders);
+  static Map<String, HeaderProvider> get dynamicHeaders =>
+      Map.unmodifiable(_dynamicHeaders);
 
   // --- Crash Reporting ---
   static CrashMessenger? _crashMessenger;
