@@ -55,6 +55,49 @@ class Img extends StatelessWidget {
     this.emptyMsg,
   }) : imgUrl = field?.fullUrl,
        bytes = field?.data;
+
+  /// Loads an image from the registered [StorageService].
+  static Widget storage(
+    String bucket,
+    String? path, {
+    Key? key,
+    StorageOptions? options,
+    BoxFit fit = BoxFit.cover,
+    bool isSvg = false,
+    bool optional = false,
+    double? width,
+    double? height,
+    String? emptyMsg,
+  }) {
+    if (path == null) {
+      return optional
+          ? const SizedBox()
+          : Center(child: Text(emptyMsg ?? 'Null path'));
+    }
+
+    return FutureBuilder<String>(
+      key: key,
+      future: Core.get<StorageService>().getUrl(bucket, path, options: options),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return Center(child: Text(emptyMsg ?? 'Error resolving image'));
+        }
+        return Img.network(
+          snapshot.data!,
+          fit: fit,
+          isSvg: isSvg,
+          optional: optional,
+          width: width,
+          height: height,
+          emptyMsg: emptyMsg,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (bytes != null) {
