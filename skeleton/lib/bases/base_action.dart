@@ -40,11 +40,6 @@ abstract class BaseAction {
   }
 }
 
-abstract class ActionApiService
-    extends BaseApiService<dynamic, dynamic, dynamic, dynamic> {
-  Future<ApiResponse<dynamic>> handleAction(ActionRequest request);
-}
-
 class GeneralAction extends BaseAction {
   GeneralAction({
     required super.controller,
