@@ -29,10 +29,11 @@ mixin StatisticsState<StateType> on MyBaseState<StateType> {
 //
 
 mixin StatisticsBloc<
-    ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>,
-    BaseState extends StatisticsState<BaseState>,
-    Filter
-  > on MyBaseBloc<ApiType, BaseState> {
+  ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>,
+  BaseState extends StatisticsState<BaseState>,
+  Filter
+>
+    on MyBaseBloc<ApiType, BaseState> {
   StatisticsResponse? statistics;
 
   /// Make a http call to get `StatisticsResponse` data.
@@ -40,7 +41,11 @@ mixin StatisticsBloc<
   /// @param id The optional resource ID for specific stats
   /// @param params Additional fields
   @protected
-  Future<StatisticsResponse> loadStatistics({dynamic id, required Filter params, String? path});
+  Future<StatisticsResponse> loadStatistics({
+    dynamic id,
+    required Filter params,
+    String? path,
+  });
 
   /// This is the method that will be called from widgets to emit `loading` state, gets the requested resource and emit the `loaded` state
   void getStatistics({dynamic id, required Filter params, String? path}) async {

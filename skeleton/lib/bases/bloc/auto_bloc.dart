@@ -24,7 +24,7 @@ mixin AutoCrudBloc<
 
     return (await (isUpdate
             ? handle(http().update(id: id, request: request))
-            : handle(http().create(request))))
+            : handle(http().create(request: request))))
         .data!;
   }
 

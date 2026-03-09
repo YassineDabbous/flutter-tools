@@ -34,6 +34,7 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
   Future<ApiResponse<Model>> show({
     required ID id,
     SearchRequest? params,
+    String? suffixPath,
   }) async {
     return handle(() async {
       final response = await client
@@ -46,7 +47,10 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
   }
 
   @override
-  Future<ApiResponse<ID>> create(EditRequest request) async {
+  Future<ApiResponse<ID>> create({
+    required EditRequest request,
+    String? suffixPath,
+  }) async {
     return handle(() async {
       final response = await client
           .from(table)
@@ -61,6 +65,7 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
   Future<ApiResponse<ID>> delete({
     required ID id,
     SearchRequest? params,
+    String? suffixPath,
   }) async {
     return handle(() async {
       await client.from(table).delete().eq('id', id as Object);
@@ -72,6 +77,7 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
   Future<ApiResponse<ID>> update({
     required ID id,
     required EditRequest request,
+    String? suffixPath,
   }) async {
     return handle(() async {
       await client
@@ -162,7 +168,10 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
   }
 
   @override
-  Future<ApiResponse<List<Model>>> all({required SearchRequest request}) async {
+  Future<ApiResponse<List<Model>>> all({
+    required SearchRequest request,
+    String? suffixPath,
+  }) async {
     return handle(() async {
       final selectStr = _buildSelect(request);
       var query = client.from(table).select(selectStr);
@@ -179,6 +188,7 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
   Future<ApiResponse<PaginatedResponse<Model>>> paging({
     required int page,
     required SearchRequest request,
+    String? suffixPath,
   }) async {
     return handle(() async {
       final selectStr = _buildSelect(request);
@@ -219,18 +229,6 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
         ),
       );
     });
-  }
-
-  @override
-  Future<ApiResponse<PaginatedResponse<Model>>> pagingCustomPath({
-    required String path,
-    required int page,
-    required SearchRequest request,
-  }) async {
-    // Custom path usually implies a different table or view
-    throw UnimplementedError(
-      'Custom path paging should be implemented in concrete service if needed',
-    );
   }
 
   @override

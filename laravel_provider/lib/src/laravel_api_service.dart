@@ -19,6 +19,8 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
   /// Used for constructed ActionRequests.
   String get resourceType; // => 'general';
 
+  String get endpoint;
+
   /// Helper to catch exceptions and map them to Failures.
   Future<T> handle<T>(Future<T> Function() call) async {
     try {
@@ -42,8 +44,8 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
   }) async {
     return handle(() async {
       final path = suffixPath != null
-          ? '/$resourceType/$suffixPath/$id'
-          : '/$resourceType/$id';
+          ? '/$endpoint/$id/$suffixPath'
+          : '/$endpoint/$id';
       final result = await superRequestTransform(
         dio: dio,
         path: path,
@@ -65,9 +67,7 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
     String? suffixPath,
   }) async {
     return handle(() async {
-      final path = suffixPath != null
-          ? '/$resourceType/$suffixPath'
-          : '/$resourceType';
+      final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
       final result = await superRequestTransform(
         dio: dio,
         path: path,
@@ -90,9 +90,7 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
     String? suffixPath,
   }) async {
     return handle(() async {
-      final path = suffixPath != null
-          ? '/$resourceType/$suffixPath'
-          : '/$resourceType';
+      final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
       final query = request is Jsonable
           ? request.toJson()
           : <String, dynamic>{};
@@ -118,14 +116,12 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
   }
 
   @override
-  Future<ApiResponse<ID>> create(
-    EditRequest request, {
+  Future<ApiResponse<ID>> create({
+    required EditRequest request,
     String? suffixPath,
   }) async {
     return handle(() async {
-      final path = suffixPath != null
-          ? '/$resourceType/$suffixPath'
-          : '/$resourceType';
+      final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
       final result = await superRequestTransform(
         dio: dio,
         path: path,
@@ -148,9 +144,9 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
   }) async {
     return handle(() async {
       final path = suffixPath != null
-          ? '/$resourceType/$suffixPath/$id'
-          : '/$resourceType/$id';
-      final result = await superRequestTransform(
+          ? '/$endpoint/$id/$suffixPath'
+          : '/$endpoint/$id';
+      await superRequestTransform(
         dio: dio,
         path: path,
         method: 'PUT',
@@ -169,8 +165,8 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
   }) async {
     return handle(() async {
       final path = suffixPath != null
-          ? '/$resourceType/$suffixPath/$id'
-          : '/$resourceType/$id';
+          ? '/$endpoint/$id/$suffixPath'
+          : '/$endpoint/$id';
       await superRequestTransform(
         dio: dio,
         path: path,
@@ -190,7 +186,7 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
     return handle(() async {
       final result = await superRequestTransform(
         dio: dio,
-        path: '/$resourceType/$id/relations',
+        path: '/$endpoint/$id/relations',
         method: 'POST',
         baseUrl: baseUrl,
         fieldsAndFiles: request is Jsonable

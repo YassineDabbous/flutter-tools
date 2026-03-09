@@ -37,7 +37,10 @@ abstract class BaseApiService<Model, EditRequest, SearchRequest, ID> {
   });
 
   /// Creates a new resource.
-  Future<ApiResponse<ID>> create(EditRequest request, {String? suffixPath});
+  Future<ApiResponse<ID>> create({
+    required EditRequest request,
+    String? suffixPath,
+  });
 
   /// Updates an existing resource.
   Future<ApiResponse<ID>> update({
