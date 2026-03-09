@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:skeleton/skeleton.dart';
-import '../mappers/error_mapper.dart';
-import 'advanced_requests.dart';
+import 'package:laravel_provider/laravel_provider.dart';
+import 'package:laravel_provider/src/advanced_requests.dart';
 import 'laravel_response.dart';
 
 /// Base class for Laravel service implementations.
@@ -26,6 +26,184 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
     } catch (e) {
       throw LaravelErrorMapper.map(e);
     }
+  }
+
+  /// Convert JSON to Model - must be implemented by concrete service
+  Model modelFromJson(Map<String, dynamic> json);
+
+  /// Convert Request to JSON - must be implemented by concrete service
+  Map<String, dynamic> requestToJson(EditRequest request);
+
+  @override
+  Future<ApiResponse<Model>> show({
+    required ID id,
+    SearchRequest? params,
+    String? suffixPath,
+  }) async {
+    return handle(() async {
+      final path = suffixPath != null
+          ? '/$resourceType/$suffixPath/$id'
+          : '/$resourceType/$id';
+      final result = await superRequestTransform(
+        dio: dio,
+        path: path,
+        method: 'GET',
+        baseUrl: baseUrl,
+        fieldsAndFiles: {},
+        queryParameters: params is Jsonable ? params.toJson() : null,
+      );
+      return BasicResponse<Model>.fromJson(
+        result.data!,
+        (json) => modelFromJson(json as Map<String, dynamic>),
+      );
+    });
+  }
+
+  @override
+  Future<ApiResponse<List<Model>>> all({
+    required SearchRequest request,
+    String? suffixPath,
+  }) async {
+    return handle(() async {
+      final path = suffixPath != null
+          ? '/$resourceType/$suffixPath'
+          : '/$resourceType';
+      final result = await superRequestTransform(
+        dio: dio,
+        path: path,
+        method: 'GET',
+        baseUrl: baseUrl,
+        fieldsAndFiles: {},
+        queryParameters: request is Jsonable ? request.toJson() : null,
+      );
+      return ListResponse<Model>.fromJson(
+        result.data!,
+        (json) => modelFromJson(json as Map<String, dynamic>),
+      );
+    });
+  }
+
+  @override
+  Future<ApiResponse<PaginatedResponse<Model>>> paging({
+    required int page,
+    required SearchRequest request,
+    String? suffixPath,
+  }) async {
+    return handle(() async {
+      final path = suffixPath != null
+          ? '/$resourceType/$suffixPath'
+          : '/$resourceType';
+      final query = request is Jsonable
+          ? request.toJson()
+          : <String, dynamic>{};
+      query['page'] = page;
+
+      final result = await superRequestTransform(
+        dio: dio,
+        path: path,
+        method: 'GET',
+        baseUrl: baseUrl,
+        fieldsAndFiles: {},
+        queryParameters: query,
+      );
+
+      // We wrap the pagination response in a BasicResponse to satisfy the ApiResponse requirement
+      return BasicResponse<PaginatedResponse<Model>>(
+        data: LaravelPaginationResponse<Model>.fromJson(
+          result.data!,
+          (json) => modelFromJson(json as Map<String, dynamic>),
+        ),
+      );
+    });
+  }
+
+  @override
+  Future<ApiResponse<ID>> create(
+    EditRequest request, {
+    String? suffixPath,
+  }) async {
+    return handle(() async {
+      final path = suffixPath != null
+          ? '/$resourceType/$suffixPath'
+          : '/$resourceType';
+      final result = await superRequestTransform(
+        dio: dio,
+        path: path,
+        method: 'POST',
+        baseUrl: baseUrl,
+        fieldsAndFiles: requestToJson(request),
+      );
+      // Laravel often returns the ID or the whole model
+      final data = result.data!['data'];
+      final id = (data is Map ? data['id'] : data) as ID;
+      return ApiResponse(data: id);
+    });
+  }
+
+  @override
+  Future<ApiResponse<ID>> update({
+    required ID id,
+    required EditRequest request,
+    String? suffixPath,
+  }) async {
+    return handle(() async {
+      final path = suffixPath != null
+          ? '/$resourceType/$suffixPath/$id'
+          : '/$resourceType/$id';
+      final result = await superRequestTransform(
+        dio: dio,
+        path: path,
+        method: 'PUT',
+        baseUrl: baseUrl,
+        fieldsAndFiles: requestToJson(request),
+      );
+      return ApiResponse(data: id);
+    });
+  }
+
+  @override
+  Future<ApiResponse<ID>> delete({
+    required ID id,
+    SearchRequest? params,
+    String? suffixPath,
+  }) async {
+    return handle(() async {
+      final path = suffixPath != null
+          ? '/$resourceType/$suffixPath/$id'
+          : '/$resourceType/$id';
+      await superRequestTransform(
+        dio: dio,
+        path: path,
+        method: 'DELETE',
+        baseUrl: baseUrl,
+        fieldsAndFiles: {},
+      );
+      return ApiResponse(data: id);
+    });
+  }
+
+  @override
+  Future<ApiResponse> manageRelations({
+    required ID id,
+    required dynamic request,
+  }) async {
+    return handle(() async {
+      final result = await superRequestTransform(
+        dio: dio,
+        path: '/$resourceType/$id/relations',
+        method: 'POST',
+        baseUrl: baseUrl,
+        fieldsAndFiles: request is Jsonable
+            ? request.toJson()
+            : request as Map<String, dynamic>,
+      );
+      return ApiResponse(data: result.data);
+    });
+  }
+
+  @override
+  Stream<List<Model>> stream({required SearchRequest request}) {
+    throw UnimplementedError('Streaming not supported for Laravel yet');
   }
 
   @override

@@ -4,10 +4,22 @@ import 'package:core/core.dart';
 extension FileFieldDioX on FileField {
   MultipartFile? toMultipart() {
     if (data != null) {
-      return MultipartFile.fromBytes(data!, filename: fileName ?? 'file', contentType: contentType != null ? DioMediaType.parse(contentType!) : null);
+      return MultipartFile.fromBytes(
+        data!,
+        filename: fileName ?? 'file',
+        contentType: contentType != null
+            ? DioMediaType.parse(contentType!)
+            : null,
+      );
     }
     if (path != null) {
-      return MultipartFile.fromFileSync(path!, filename: fileName, contentType: contentType != null ? DioMediaType.parse(contentType!) : null);
+      return MultipartFile.fromFileSync(
+        path!,
+        filename: fileName,
+        contentType: contentType != null
+            ? DioMediaType.parse(contentType!)
+            : null,
+      );
     }
     return null;
   }
@@ -19,6 +31,7 @@ Future<Response<Map<String, dynamic>>> superRequestTransform({
   String method = 'POST',
   required String? baseUrl,
   required Map<String, dynamic> fieldsAndFiles,
+  Map<String, dynamic>? queryParameters,
 }) async {
   final Map<String, dynamic> fields = {};
   final List<FileField> files = [];
@@ -38,12 +51,13 @@ Future<Response<Map<String, dynamic>>> superRequestTransform({
   );
 
   return await superRequest(
-    dio: dio, 
-    path: path, 
-    fields: fields, 
-    files: attachmentsMap, 
-    baseUrl: baseUrl, 
-    method: method
+    dio: dio,
+    path: path,
+    fields: fields,
+    files: attachmentsMap,
+    baseUrl: baseUrl,
+    method: method,
+    queryParameters: queryParameters,
   );
 }
 
@@ -52,29 +66,46 @@ Future<Response<Map<String, dynamic>>> superRequest({
   required String path,
   String method = 'POST',
   required String? baseUrl,
-  required Map<String, dynamic> fields,
-  required Map<String, MultipartFile> files,
+  Map<String, dynamic>? fields,
+  Map<String, MultipartFile>? files,
+  Map<String, dynamic>? queryParameters,
 }) async {
-  final data = FormData.fromMap(
-    fields,
-    ListFormat.multiCompatible,
-  );
+  dynamic data;
+  final isMultipart = (files != null && files.isNotEmpty);
 
-  data.files.addAll(files.entries);
+  if (method == 'GET' || method == 'DELETE') {
+    data = null;
+  } else if (isMultipart) {
+    final formData = FormData.fromMap(fields ?? {}, ListFormat.multiCompatible);
 
-  if (method == 'PUT' || method == 'PATCH') {
-    data.fields.add(MapEntry("_method", method.toUpperCase()));
+    formData.files.addAll(files.entries);
+
+    // Laravel method spoofing
+    if (method == 'PUT' || method == 'PATCH') {
+      formData.fields.add(MapEntry("_method", method.toUpperCase()));
+    }
+    data = formData;
+  } else {
+    data = fields;
+    // For simple POST/PUT/PATCH without files, we can use JSON
   }
 
   final options = Options(
-    method: 'POST',
-    contentType: 'multipart/form-data',
+    method: (isMultipart && (method == 'PUT' || method == 'PATCH'))
+        ? 'POST'
+        : method,
+    contentType: isMultipart ? 'multipart/form-data' : 'application/json',
     responseType: ResponseType.json,
   );
 
   return await dio.fetch<Map<String, dynamic>>(
-    options.compose(dio.options, path, data: data).copyWith(
-      baseUrl: baseUrl ?? dio.options.baseUrl
-    )
+    options
+        .compose(
+          dio.options,
+          path,
+          data: data,
+          queryParameters: queryParameters,
+        )
+        .copyWith(baseUrl: baseUrl ?? dio.options.baseUrl),
   );
 }

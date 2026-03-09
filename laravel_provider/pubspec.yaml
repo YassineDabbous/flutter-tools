@@ -16,8 +16,6 @@ dependencies:
     path: ../core
   
   dio: ^5.9.0
-  retrofit: ^4.9.0
-  json_annotation: ^4.9.0
   pretty_dio_logger: ^1.4.0
 
 dev_dependencies:
@@ -25,5 +23,3 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   build_runner: ^2.10.1
-  retrofit_generator: ^10.1.2
-  json_serializable: ^6.11.1

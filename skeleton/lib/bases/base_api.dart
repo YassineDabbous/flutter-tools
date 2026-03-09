@@ -10,46 +10,40 @@ import 'package:skeleton/skeleton.dart';
 /// - [ID]: The type of the resource identifier (typically `int` or `String`).
 abstract class BaseApiService<Model, EditRequest, SearchRequest, ID> {
   /// Retrieves a single resource by its ID.
-  Future<ApiResponse<Model>> show({required ID id, SearchRequest? params});
-
-  /// Retrieves a single resource for editing.
-  Future<ApiResponse<Model>> showForEdit({
+  Future<ApiResponse<Model>> show({
     required ID id,
     SearchRequest? params,
+    String? suffixPath,
   });
 
   /// Gets all resources at once.
-  Future<ApiResponse<List<Model>>> all({required SearchRequest request});
+  Future<ApiResponse<List<Model>>> all({
+    required SearchRequest request,
+    String? suffixPath,
+  });
 
   /// Retrieves resources using pagination.
   Future<ApiResponse<PaginatedResponse<Model>>> paging({
     required int page,
     required SearchRequest request,
+    String? suffixPath,
   });
 
   /// Deletes a resource by its ID.
-  Future<ApiResponse<ID>> delete({required ID id, SearchRequest? params});
+  Future<ApiResponse<ID>> delete({
+    required ID id,
+    SearchRequest? params,
+    String? suffixPath,
+  });
 
   /// Creates a new resource.
-  Future<ApiResponse<ID>> create(EditRequest request);
+  Future<ApiResponse<ID>> create(EditRequest request, {String? suffixPath});
 
   /// Updates an existing resource.
   Future<ApiResponse<ID>> update({
     required ID id,
     required EditRequest request,
-  });
-
-  /// Gets all resources at once (for admin or specialized endpoints).
-  Future<ApiResponse<List<Model>>> allCustomPath({
-    required String path,
-    required SearchRequest request,
-  });
-
-  /// Custom path paging (for admin or specialized endpoints).
-  Future<ApiResponse<PaginatedResponse<Model>>> pagingCustomPath({
-    required String path,
-    required int page,
-    required SearchRequest request,
+    String? suffixPath,
   });
 
   /// Manage resource relationships.
