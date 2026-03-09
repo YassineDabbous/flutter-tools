@@ -39,6 +39,12 @@ abstract class BaseApiService<Model, EditRequest, SearchRequest, ID> {
     required EditRequest request,
   });
 
+  /// Gets all resources at once (for admin or specialized endpoints).
+  Future<ApiResponse<List<Model>>> allCustomPath({
+    required String path,
+    required SearchRequest request,
+  });
+
   /// Custom path paging (for admin or specialized endpoints).
   Future<ApiResponse<PaginatedResponse<Model>>> pagingCustomPath({
     required String path,

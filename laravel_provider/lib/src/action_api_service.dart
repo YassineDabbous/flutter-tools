@@ -54,6 +54,12 @@ class LaravelActionApiService implements ActionApiService {
   }) => throw UnimplementedError();
 
   @override
+  Future<ApiResponse<List<dynamic>>> allCustomPath({
+    required String path,
+    required dynamic request,
+  }) => throw UnimplementedError();
+
+  @override
   Future<ApiResponse<PaginatedResponse<dynamic>>> pagingCustomPath({
     required String path,
     required int page,

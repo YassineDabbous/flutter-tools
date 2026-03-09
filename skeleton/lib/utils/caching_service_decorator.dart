@@ -87,6 +87,12 @@ class CachingApiService<M, E, S, ID> implements BaseApiService<M, E, S, ID> {
       _remote.all(request: request);
 
   @override
+  Future<ApiResponse<List<M>>> allCustomPath({
+    required String path,
+    required S request,
+  }) => _remote.allCustomPath(path: path, request: request);
+
+  @override
   Future<ApiResponse<PaginatedResponse<M>>> pagingCustomPath({
     required String path,
     required int page,
