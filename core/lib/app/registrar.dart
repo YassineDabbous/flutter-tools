@@ -9,16 +9,19 @@ abstract class Registrar {
   /// Initializes the core service dependencies.
   @mustCallSuper
   Future init() async {
-    // Auth managers (Base implementation, providers should override if needed)
-    Core.i.addSingleton<AuthLocalManager>(() => AuthLocalManager());
-    Core.i.addSingleton<AuthenticationCubit>(() => AuthenticationCubit(repository: Core.get<AuthLocalManager>()));
-    Core.i.add<AuthCheckerCubit>(() => AuthCheckerCubit(repository: Core.get<AuthLocalManager>()));
-
     // General local storage
     Core.i.addSingleton<SharedPrefHelper>(() => SharedPrefHelper());
 
-    // Execute concrete implementation registration
+    // Execute concrete implementation registration (Provider provides AuthLocalManager)
     register();
+
+    // Auth managers (Cubits depend on registered AuthLocalManager)
+    Core.i.addSingleton<AuthenticationCubit>(
+      () => AuthenticationCubit(repository: Core.get<AuthLocalManager>()),
+    );
+    Core.i.add<AuthCheckerCubit>(
+      () => AuthCheckerCubit(repository: Core.get<AuthLocalManager>()),
+    );
 
     // Commit changes to the service locator
     Core.i.commit();

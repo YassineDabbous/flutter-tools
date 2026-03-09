@@ -71,4 +71,14 @@ class LaravelActionApiService implements ActionApiService {
     required dynamic id,
     required dynamic request,
   }) => throw UnimplementedError();
+
+  @override
+  Stream<List<dynamic>> stream({required dynamic request}) =>
+      throw UnimplementedError('Realtime not supported for Laravel yet');
+
+  @override
+  Future<ApiResponse<T>> callFunction<T>(
+    String name, {
+    Map<String, dynamic>? params,
+  }) => throw UnimplementedError('RPC not supported for Laravel yet');
 }

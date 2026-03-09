@@ -1,12 +1,13 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:skeleton/skeleton.dart';
 import 'package:core/core.dart';
 
 /// Base class for Supabase service implementations.
-/// 
+///
 /// [ID] is typically [String] (UUID) for Supabase, but can be [int].
-abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID> implements BaseApiService<Model, EditRequest, SearchRequest, ID> {
-  final SupabaseClient client;
+abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
+    implements BaseApiService<Model, EditRequest, SearchRequest, ID> {
+  final sb.SupabaseClient client;
   final String table;
 
   SupabaseApiService(this.client, this.table);
@@ -16,21 +17,30 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID> impleme
     try {
       return await call();
     } catch (e) {
-      if (e is PostgrestException) {
+      if (e is sb.PostgrestException) {
         if (e.code == '42501') throw const PermissionFailure();
-        if (e.code == '23505') throw ValidationFailure(errors: {'db': e.message});
+        if (e.code == '23505') {
+          throw ValidationFailure(errors: {'db': e.message});
+        }
         if (e.code == 'PGRST116') throw const NotFoundFailure();
         throw ServerFailure(e.message);
       }
-      if (e is AuthException) throw const AuthFailure();
+      if (e is sb.AuthException) throw const AuthFailure();
       throw ServerFailure(e.toString());
     }
   }
 
   @override
-  Future<ApiResponse<Model>> show({required ID id, SearchRequest? params}) async {
+  Future<ApiResponse<Model>> show({
+    required ID id,
+    SearchRequest? params,
+  }) async {
     return handle(() async {
-      final response = await client.from(table).select().eq('id', id as Object).single();
+      final response = await client
+          .from(table)
+          .select()
+          .eq('id', id as Object)
+          .single();
       return ApiResponse(data: modelFromJson(response));
     });
   }
@@ -38,13 +48,20 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID> impleme
   @override
   Future<ApiResponse<ID>> create(EditRequest request) async {
     return handle(() async {
-      final response = await client.from(table).insert(requestToJson(request)).select('id').single();
+      final response = await client
+          .from(table)
+          .insert(requestToJson(request))
+          .select('id')
+          .single();
       return ApiResponse(data: response['id'] as ID);
     });
   }
 
   @override
-  Future<ApiResponse<ID>> delete({required ID id, SearchRequest? params}) async {
+  Future<ApiResponse<ID>> delete({
+    required ID id,
+    SearchRequest? params,
+  }) async {
     return handle(() async {
       await client.from(table).delete().eq('id', id as Object);
       return ApiResponse(data: id);
@@ -52,9 +69,15 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID> impleme
   }
 
   @override
-  Future<ApiResponse<ID>> update({required ID id, required EditRequest request}) async {
+  Future<ApiResponse<ID>> update({
+    required ID id,
+    required EditRequest request,
+  }) async {
     return handle(() async {
-      await client.from(table).update(requestToJson(request)).eq('id', id as Object);
+      await client
+          .from(table)
+          .update(requestToJson(request))
+          .eq('id', id as Object);
       return ApiResponse(data: id);
     });
   }
@@ -65,10 +88,137 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID> impleme
   /// Convert Request to JSON - must be implemented by concrete service
   Map<String, dynamic> requestToJson(EditRequest request);
 
+  /// Applies DynamicQueryRequest filters to a Postgrest query.
+  dynamic _buildQuery(dynamic query, SearchRequest? params) {
+    if (params == null || params is! DynamicQueryRequest) return query;
+    final request = params as DynamicQueryRequest;
+
+    var q = query;
+
+    // Apply Filters
+    if (request.operators != null) {
+      request.operators!.forEach((field, operator) {
+        final val = request.toJson()[field];
+        // Skip if value is null
+        if (val == null) return;
+
+        switch (operator) {
+          case 'eq':
+          case '=':
+            q = q.eq(field, val);
+            break;
+          case 'neq':
+          case '!=':
+            q = q.neq(field, val);
+            break;
+          case 'gt':
+          case '>':
+            q = q.gt(field, val);
+            break;
+          case 'lt':
+          case '<':
+            q = q.lt(field, val);
+            break;
+          case 'like':
+            q = q.like(field, '%$val%');
+            break;
+          case 'ilike':
+            q = q.ilike(field, '%$val%');
+            break;
+          default:
+            q = q.eq(field, val);
+        }
+      });
+    }
+
+    // Apply Sorting
+    if (request.sort != null) {
+      for (final s in request.sort!) {
+        final ascending = !s.startsWith('-');
+        final column = ascending ? s : s.substring(1);
+        q = q.order(column, ascending: ascending);
+      }
+    }
+
+    // Apply Limit
+    if (request.limit != null) {
+      q = q.limit(request.limit!);
+    }
+
+    return q;
+  }
+
+  String _buildSelect(SearchRequest? params) {
+    if (params == null || params is! DynamicQueryRequest) return '*';
+    final request = params as DynamicQueryRequest;
+
+    String selectStr = request.fields?.join(',') ?? '*';
+    if (request.includes != null && request.includes!.isNotEmpty) {
+      for (final inc in request.includes!) {
+        selectStr += ',$inc(*)';
+      }
+    }
+    return selectStr;
+  }
+
   @override
-  Future<ApiResponse<PaginatedResponse<Model>>> paging({required int page, required SearchRequest request}) async {
-    // Basic implementation for Supabase pagination can be added here
-    throw UnimplementedError('Supabase paging implementation needed based on project needs');
+  Future<ApiResponse<List<Model>>> all({required SearchRequest request}) async {
+    return handle(() async {
+      final selectStr = _buildSelect(request);
+      var query = client.from(table).select(selectStr);
+      query = _buildQuery(query, request);
+      final response = await query;
+      final List<Model> data = (response as List)
+          .map((json) => modelFromJson(json as Map<String, dynamic>))
+          .toList();
+      return ApiResponse(data: data);
+    });
+  }
+
+  @override
+  Future<ApiResponse<PaginatedResponse<Model>>> paging({
+    required int page,
+    required SearchRequest request,
+  }) async {
+    return handle(() async {
+      final selectStr = _buildSelect(request);
+      final perPage = (request is DynamicQueryRequest)
+          ? (request as DynamicQueryRequest).perPage ?? 15
+          : 15;
+
+      final from = (page - 1) * perPage;
+      final to = from + perPage - 1;
+
+      // Use .count() method instead of select parameter for wider version compatibility
+      final dynamic baseQuery = client.from(table).select(selectStr);
+      final dynamic query = _buildQuery(
+        baseQuery.count(sb.CountOption.exact),
+        request,
+      );
+
+      final dynamic response = await query.range(from, to);
+
+      // In newer Supabase versions, response might be the data list or a PostgrestResponse
+      final List<dynamic> listData = response is List
+          ? response
+          : (response as dynamic).data;
+      final int count = response is List
+          ? listData.length
+          : (response as dynamic).count ?? listData.length;
+
+      final List<Model> data = listData
+          .map((json) => modelFromJson(json as Map<String, dynamic>))
+          .toList();
+
+      return ApiResponse(
+        data: PaginatedResponse(
+          data: data,
+          total: count,
+          perPage: perPage,
+          currentPage: page,
+        ),
+      );
+    });
   }
 
   @override
@@ -77,11 +227,40 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID> impleme
     required int page,
     required SearchRequest request,
   }) async {
-    throw UnimplementedError('Supabase custom path paging not supported yet');
+    // Custom path usually implies a different table or view
+    throw UnimplementedError(
+      'Custom path paging should be implemented in concrete service if needed',
+    );
   }
 
   @override
-  Future<ApiResponse> manageRelations({required ID id, required dynamic request}) async {
-    throw UnimplementedError('Relationship management not implemented for Supabase yet');
+  Future<ApiResponse> manageRelations({
+    required ID id,
+    required dynamic request,
+  }) async {
+    throw UnimplementedError(
+      'Relationship management not implemented for Supabase yet',
+    );
+  }
+
+  @override
+  Stream<List<Model>> stream({required SearchRequest request}) {
+    // Basic implementation for Supabase streaming
+    // Note: Supabase streaming doesn't support complex filters directly yet in the same way as queries
+    return client
+        .from(table)
+        .stream(primaryKey: ['id'])
+        .map((data) => data.map((json) => modelFromJson(json)).toList());
+  }
+
+  @override
+  Future<ApiResponse<T>> callFunction<T>(
+    String name, {
+    Map<String, dynamic>? params,
+  }) async {
+    return handle(() async {
+      final response = await client.rpc(name, params: params);
+      return ApiResponse(data: response as T);
+    });
   }
 }

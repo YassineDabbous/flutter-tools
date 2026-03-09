@@ -3,13 +3,15 @@ import 'supabase_api_service.dart';
 
 /// Mixin for Supabase-specific pagination (range-based).
 mixin SupabasePaginationBloc<
-  ApiType extends SupabaseApiService<Model, dynamic, SearchRequest, ID>,
+  ApiType extends SupabaseApiService<Model, dynamic, SearchFilter, ID>,
   BaseState extends PaginationState<BaseState, Model>,
   Model,
-  SearchRequest,
+  SearchFilter,
   ID
 >
-    on PaginationBloc<ApiType, BaseState, Model, SearchRequest> {
+    on
+        PaginationBloc<ApiType, BaseState, Model, SearchFilter>,
+        RealtimeMixin<ApiType, BaseState, Model, SearchFilter> {
   @override
   Future<PaginatedResponse<Model>> load() async {
     // Current page is 1-indexed in skeleton, Supabase uses 0-indexed range

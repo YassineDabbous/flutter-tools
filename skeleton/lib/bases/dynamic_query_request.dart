@@ -63,6 +63,13 @@ abstract class DynamicQueryRequest<T> extends SuperModel<T> {
   @JsonKey(name: '_timezone')
   String? timezone;
 
+  // --- Realtime & Relationships ---
+  @JsonKey(name: '_includes[]')
+  List<String>? includes;
+
+  @JsonKey(name: '_cursor')
+  dynamic cursor;
+
   DynamicQueryRequest({
     this.modelAlias,
     this.page,
@@ -80,12 +87,19 @@ abstract class DynamicQueryRequest<T> extends SuperModel<T> {
     this.compare,
     this.compareOn,
     this.timezone,
+    this.includes,
+    this.cursor,
   });
 
   // --- Fluent Builders ---
 
   DynamicQueryRequest<T> select(List<String> fields) {
     this.fields = fields;
+    return this;
+  }
+
+  DynamicQueryRequest<T> include(List<String> relationships) {
+    this.includes = relationships;
     return this;
   }
 
@@ -117,6 +131,11 @@ abstract class DynamicQueryRequest<T> extends SuperModel<T> {
   DynamicQueryRequest<T> pageTo(int page, {int? perPage}) {
     this.page = page;
     if (perPage != null) this.perPage = perPage;
+    return this;
+  }
+
+  DynamicQueryRequest<T> cursorAt(dynamic cursor) {
+    this.cursor = cursor;
     return this;
   }
 }

@@ -99,6 +99,16 @@ class CachingApiService<M, E, S, ID> implements BaseApiService<M, E, S, ID> {
     required dynamic request,
   }) => _remote.manageRelations(id: id, request: request);
 
+  @override
+  Stream<List<M>> stream({required S request}) =>
+      _remote.stream(request: request);
+
+  @override
+  Future<ApiResponse<T>> callFunction<T>(
+    String name, {
+    Map<String, dynamic>? params,
+  }) => _remote.callFunction(name, params: params);
+
   /// Clears the entire in-memory cache.
   static void clearCache() {
     _cache.clear();

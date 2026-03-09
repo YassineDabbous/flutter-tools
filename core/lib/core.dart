@@ -13,6 +13,7 @@ export 'contracts/contracts.dart';
 export 'constants/constants.dart';
 
 export 'storage/local_storage.dart';
+export 'storage/storage_service.dart';
 export 'extensions/extensions.dart';
 
 export 'di/di.dart';

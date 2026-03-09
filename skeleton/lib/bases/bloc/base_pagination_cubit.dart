@@ -332,3 +332,37 @@ mixin PaginationBloc<
     return super.close();
   }
 }
+
+/// Mixin for [PaginationBloc] to support live data streams.
+mixin RealtimeMixin<
+  ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>,
+  BaseState extends PaginationState<BaseState, Model>,
+  Model,
+  SearchFilter
+>
+    on PaginationBloc<ApiType, BaseState, Model, SearchFilter> {
+  StreamSubscription? _realtimeSubscription;
+
+  /// Starts listening to the live stream for the current filter.
+  void startRealtime() {
+    _realtimeSubscription?.cancel();
+    _realtimeSubscription = http().stream(request: filter).listen((items) {
+      _handleRealtimeUpdate(List<Model>.from(items));
+    });
+  }
+
+  void _handleRealtimeUpdate(List<Model> items) {
+    // Basic logic: if pagingMode is infiniteScroll, we might want to
+    // merge new items. If it's paginated, we might just refresh.
+    // For now, let's just update 'lista' optimistically.
+    for (final item in items) {
+      updateLocal(item);
+    }
+  }
+
+  @override
+  Future<void> close() {
+    _realtimeSubscription?.cancel();
+    return super.close();
+  }
+}

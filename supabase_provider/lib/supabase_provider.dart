@@ -1,4 +1,4 @@
-export 'auth/supabase_auth_bridge.dart';
-export 'helpers/storage_helper.dart';
+export 'auth/supabase_auth_manager.dart';
+export 'helpers/supabase_storage_service.dart';
 export 'src/supabase_api_service.dart';
 export 'src/supabase_pagination_bloc.dart';
