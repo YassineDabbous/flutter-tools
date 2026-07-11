@@ -18,5 +18,8 @@ class Coordinates {
     latitude = json['latitude'];
     longitude = json['longitude'];
   }
-  Map<String, dynamic> toJson() => {'latitude': latitude, 'longitude': longitude};
+  Map<String, dynamic> toJson() => {
+    'latitude': latitude,
+    'longitude': longitude,
+  };
 }

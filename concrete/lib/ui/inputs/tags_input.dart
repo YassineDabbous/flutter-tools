@@ -47,7 +47,9 @@ class _TextFieldTagsState extends State<TextFieldTags> {
         errors.add(tag + ' exists'.i18n());
         return false;
       } else {
-        final error = widget.tagValidator != null ? widget.tagValidator!(tag) : null;
+        final error = widget.tagValidator != null
+            ? widget.tagValidator!(tag)
+            : null;
         if (error != null) {
           errors.add(error);
           return false;
@@ -67,8 +69,12 @@ class _TextFieldTagsState extends State<TextFieldTags> {
 
   void onSubmitted(String value) {
     errors.clear();
-    final separator = widget.textSeparators.firstWhere((element) => value.contains(element) && value.indexOf(element) != 0, orElse: () => ',');
-    final splits = value.split(separator).map((e) => e.trim()).toList()..removeWhere((element) => element.isEmpty);
+    final separator = widget.textSeparators.firstWhere(
+      (element) => value.contains(element) && value.indexOf(element) != 0,
+      orElse: () => ',',
+    );
+    final splits = value.split(separator).map((e) => e.trim()).toList()
+      ..removeWhere((element) => element.isEmpty);
     if (splits.isNotEmpty) {
       var i = 0;
       List<String> refusedList = [];
@@ -104,12 +110,24 @@ class _TextFieldTagsState extends State<TextFieldTags> {
           focusNode: focusNode,
           decoration: InputDecoration(
             isDense: true,
-            border: const OutlineInputBorder(borderSide: BorderSide(color: Color.fromARGB(255, 74, 137, 92), width: 3.0)),
-            focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color.fromARGB(255, 74, 137, 92), width: 3.0)),
+            border: const OutlineInputBorder(
+              borderSide: BorderSide(
+                color: Color.fromARGB(255, 74, 137, 92),
+                width: 3.0,
+              ),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderSide: BorderSide(
+                color: Color.fromARGB(255, 74, 137, 92),
+                width: 3.0,
+              ),
+            ),
             labelText: tags.isNotEmpty ? '' : widget.hint,
             hintText: widget.hint,
             errorText: errors.join(', '),
-            prefixIconConstraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.75),
+            prefixIconConstraints: BoxConstraints(
+              maxWidth: constraints.maxWidth * 0.75,
+            ),
             prefixIcon: tags.isNotEmpty
                 ? SingleChildScrollView(
                     controller: sc,
@@ -117,16 +135,33 @@ class _TextFieldTagsState extends State<TextFieldTags> {
                     child: Row(
                       children: tags.map((String tag) {
                         return Container(
-                          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(12.0)), color: context.colorScheme.primary),
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(12.0),
+                            ),
+                            color: context.colorScheme.primary,
+                          ),
                           margin: const EdgeInsets.symmetric(horizontal: 2.0),
-                          padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6.0,
+                            vertical: 3.0,
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(tag, style: TextStyle(color: context.colorScheme.onPrimary)),
+                              Text(
+                                tag,
+                                style: TextStyle(
+                                  color: context.colorScheme.onPrimary,
+                                ),
+                              ),
                               const SizedBox(width: 4.0),
                               InkWell(
-                                child: Icon(Icons.cancel, size: 14.0, color: context.colorScheme.onPrimary),
+                                child: Icon(
+                                  Icons.cancel,
+                                  size: 14.0,
+                                  color: context.colorScheme.onPrimary,
+                                ),
                                 onTap: () => _onTagDelete(tag),
                               ),
                             ],

@@ -9,13 +9,10 @@ class StatisticsResponse {
   final StatsSummary? summary;
   final List<StatPoint> dataset;
 
-  StatisticsResponse({
-    required this.meta,
-    this.summary,
-    required this.dataset,
-  });
+  StatisticsResponse({required this.meta, this.summary, required this.dataset});
 
-  factory StatisticsResponse.fromJson(Map<String, dynamic> json) => _$StatisticsResponseFromJson(json);
+  factory StatisticsResponse.fromJson(Map<String, dynamic> json) =>
+      _$StatisticsResponseFromJson(json);
   Map<String, dynamic> toJson() => _$StatisticsResponseToJson(this);
 }
 
@@ -24,7 +21,7 @@ class StatMeta {
   final String metric;
   final String? currency;
   final String? timezone;
-  final dynamic granularity; 
+  final dynamic granularity;
 
   StatMeta({
     required this.metric,
@@ -33,7 +30,8 @@ class StatMeta {
     this.granularity,
   });
 
-  factory StatMeta.fromJson(Map<String, dynamic> json) => _$StatMetaFromJson(json);
+  factory StatMeta.fromJson(Map<String, dynamic> json) =>
+      _$StatMetaFromJson(json);
   Map<String, dynamic> toJson() => _$StatMetaToJson(this);
 }
 
@@ -43,13 +41,10 @@ class StatsSummary {
   final String formatted;
   final StatTrend? trend;
 
-  StatsSummary({
-    required this.value,
-    required this.formatted,
-    this.trend,
-  });
+  StatsSummary({required this.value, required this.formatted, this.trend});
 
-  factory StatsSummary.fromJson(Map<String, dynamic> json) => _$StatsSummaryFromJson(json);
+  factory StatsSummary.fromJson(Map<String, dynamic> json) =>
+      _$StatsSummaryFromJson(json);
   Map<String, dynamic> toJson() => _$StatsSummaryToJson(this);
 }
 
@@ -65,9 +60,10 @@ class StatTrend {
     required this.absolute,
   });
 
-  factory StatTrend.fromJson(Map<String, dynamic> json) => _$StatTrendFromJson(json);
+  factory StatTrend.fromJson(Map<String, dynamic> json) =>
+      _$StatTrendFromJson(json);
   Map<String, dynamic> toJson() => _$StatTrendToJson(this);
-  
+
   bool get isPositive => direction == 'up';
   bool get isNegative => direction == 'down';
 }
@@ -77,7 +73,7 @@ class StatPoint {
   final String label;
   final Map<String, dynamic> group;
   final double value;
-  
+
   @JsonKey(name: 'previous_value')
   final double? previousValue;
   final StatTransforms? transforms;
@@ -90,7 +86,8 @@ class StatPoint {
     this.transforms,
   });
 
-  factory StatPoint.fromJson(Map<String, dynamic> json) => _$StatPointFromJson(json);
+  factory StatPoint.fromJson(Map<String, dynamic> json) =>
+      _$StatPointFromJson(json);
   Map<String, dynamic> toJson() => _$StatPointToJson(this);
 }
 
@@ -100,10 +97,11 @@ class StatTransforms {
   final double? cumulative;
 
   @JsonKey(name: 'growth')
-  final double? growth; 
+  final double? growth;
 
   StatTransforms({this.cumulative, this.growth});
 
-  factory StatTransforms.fromJson(Map<String, dynamic> json) => _$StatTransformsFromJson(json);
+  factory StatTransforms.fromJson(Map<String, dynamic> json) =>
+      _$StatTransformsFromJson(json);
   Map<String, dynamic> toJson() => _$StatTransformsToJson(this);
 }

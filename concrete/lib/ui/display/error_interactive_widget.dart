@@ -15,9 +15,17 @@ class InteractiveErrorWidget extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton.icon(icon: const Icon(Icons.arrow_back), label: Text('back'.i18n()), onPressed: () => Core.nav.pop(context)),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.arrow_back),
+              label: Text('back'.i18n()),
+              onPressed: () => Core.nav.pop(context),
+            ),
             const SizedBox(width: 32),
-            ElevatedButton.icon(icon: const Icon(Icons.refresh), label: Text('refresh'.i18n()), onPressed: onRefresh),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.refresh),
+              label: Text('refresh'.i18n()),
+              onPressed: onRefresh,
+            ),
           ],
         ),
       ],

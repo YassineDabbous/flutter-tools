@@ -20,7 +20,8 @@ class SuperSelectionDataGrid<TModel extends BaseModel> extends StatefulWidget {
   final Function(int)? loadPage;
   final Function()? loadNext;
   final Function()? loadPrevious;
-  final void Function(Set<dynamic> selectedIds, List<TModel> selectedItems)? onSelection;
+  final void Function(Set<dynamic> selectedIds, List<TModel> selectedItems)?
+  onSelection;
   final Set<dynamic> initialSelectedIds;
   final bool selectionEnabled;
   const SuperSelectionDataGrid({
@@ -44,10 +45,12 @@ class SuperSelectionDataGrid<TModel extends BaseModel> extends StatefulWidget {
   });
 
   @override
-  State<SuperSelectionDataGrid<TModel>> createState() => _SuperSelectionDataGridState<TModel>();
+  State<SuperSelectionDataGrid<TModel>> createState() =>
+      _SuperSelectionDataGridState<TModel>();
 }
 
-class _SuperSelectionDataGridState<TModel extends BaseModel> extends State<SuperSelectionDataGrid<TModel>> {
+class _SuperSelectionDataGridState<TModel extends BaseModel>
+    extends State<SuperSelectionDataGrid<TModel>> {
   late Set<dynamic> _selectedIds;
 
   @override
@@ -77,7 +80,12 @@ class _SuperSelectionDataGridState<TModel extends BaseModel> extends State<Super
       }
 
       // Notify the parent widget with the updated set of IDs and the corresponding items.
-      widget.onSelection?.call(_selectedIds, widget.items.where((item) => _selectedIds.contains(item.getId())).toList());
+      widget.onSelection?.call(
+        _selectedIds,
+        widget.items
+            .where((item) => _selectedIds.contains(item.getId()))
+            .toList(),
+      );
     });
   }
 
@@ -86,19 +94,33 @@ class _SuperSelectionDataGridState<TModel extends BaseModel> extends State<Super
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(children: [if (_selectedIds.isNotEmpty) ...widget.keyedTools, ...widget.tools]),
+        Wrap(
+          children: [
+            if (_selectedIds.isNotEmpty) ...widget.keyedTools,
+            ...widget.tools,
+          ],
+        ),
 
         SizedBox(
           width: MediaQuery.of(context).size.width,
           child: DataTable(
             showCheckboxColumn: widget.selectionEnabled,
-            columns: widget.columns.map<DataColumn>((e) => DataColumn(label: Text(e.toUpperCase()), numeric: e.toLowerCase() == 'id')).toList(),
+            columns: widget.columns
+                .map<DataColumn>(
+                  (e) => DataColumn(
+                    label: Text(e.toUpperCase()),
+                    numeric: e.toLowerCase() == 'id',
+                  ),
+                )
+                .toList(),
             rows: widget.items.map<DataRow>((item) {
               final isSelected = _selectedIds.contains(item.getId());
 
               return DataRow(
                 selected: isSelected,
-                onSelectChanged: !widget.selectionEnabled ? null : (selected) => _handleSelectionChanged(selected, item),
+                onSelectChanged: !widget.selectionEnabled
+                    ? null
+                    : (selected) => _handleSelectionChanged(selected, item),
                 cells: widget.cellsBuilder(item),
               );
             }).toList(),
@@ -110,8 +132,14 @@ class _SuperSelectionDataGridState<TModel extends BaseModel> extends State<Super
             children: [
               if (widget.total != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
-                  child: SizedBox(width: 60, child: Text('${"total".i18n()}: ${widget.total}')),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 2,
+                    horizontal: 8,
+                  ),
+                  child: SizedBox(
+                    width: 60,
+                    child: Text('${"total".i18n()}: ${widget.total}'),
+                  ),
                 ),
               Expanded(
                 child: Wrap(
@@ -119,22 +147,49 @@ class _SuperSelectionDataGridState<TModel extends BaseModel> extends State<Super
                   // mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // const Spacer(),
-                    TextButton(onPressed: widget.loadPrevious, child: const Icon(Icons.chevron_left)),
-                    ...widget.pages!.map((e) => TextButton(onPressed: (widget.page == e) ? null : () => widget.loadPage?.call(e), child: Text('$e'))),
-                    TextButton(onPressed: widget.loadNext, child: const Icon(Icons.chevron_right)),
+                    TextButton(
+                      onPressed: widget.loadPrevious,
+                      child: const Icon(Icons.chevron_left),
+                    ),
+                    ...widget.pages!.map(
+                      (e) => TextButton(
+                        onPressed: (widget.page == e)
+                            ? null
+                            : () => widget.loadPage?.call(e),
+                        child: Text('$e'),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: widget.loadNext,
+                      child: const Icon(Icons.chevron_right),
+                    ),
                   ],
                 ),
               ),
               if (widget.loadPerPage != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 2,
+                    horizontal: 8,
+                  ),
                   child: SizedBox(
                     width: 60,
                     child: DropdownButton<int>(
                       key: const Key('perPage'),
                       isExpanded: true,
-                      value: widget.perPage == null || !_perPageList.contains(widget.perPage) ? _perPageList.first : widget.perPage,
-                      items: _perPageList.map((e) => DropdownMenuItem<int>(value: e, child: Text('$e'))).toList(),
+                      value:
+                          widget.perPage == null ||
+                              !_perPageList.contains(widget.perPage)
+                          ? _perPageList.first
+                          : widget.perPage,
+                      items: _perPageList
+                          .map(
+                            (e) => DropdownMenuItem<int>(
+                              value: e,
+                              child: Text('$e'),
+                            ),
+                          )
+                          .toList(),
                       onChanged: widget.loadPerPage,
                     ),
                   ),

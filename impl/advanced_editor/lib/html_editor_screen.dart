@@ -20,7 +20,12 @@ class HtmlEditorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('edit content'.i18n() + (isSupported ? "" : "(Html editor not supported on this plateform.)")),
+        title: Text(
+          'edit content'.i18n() +
+              (isSupported
+                  ? ""
+                  : "(Html editor not supported on this plateform.)"),
+        ),
         automaticallyImplyLeading: true,
         actions: [
           IconButton(
@@ -28,7 +33,9 @@ class HtmlEditorScreen extends StatelessWidget {
             onPressed: () async {
               //_htmlEditorController.setFullScreen();
               if (isSupported) {
-                Navigator.of(context).pop<String>(await _htmlEditorController.getText());
+                Navigator.of(
+                  context,
+                ).pop<String>(await _htmlEditorController.getText());
               } else {
                 Navigator.of(context).pop<String>(_textEditorController.text);
               }
@@ -48,7 +55,10 @@ class HtmlEditorScreen extends StatelessWidget {
               )
             : HtmlEditor(
                 controller: _htmlEditorController, //required
-                htmlEditorOptions: HtmlEditorOptions(hint: "write here".i18n(), initialText: initial),
+                htmlEditorOptions: HtmlEditorOptions(
+                  hint: "write here".i18n(),
+                  initialText: initial,
+                ),
                 htmlToolbarOptions: const HtmlToolbarOptions(
                   initiallyExpanded: true,
                   defaultToolbarButtons: [FontButtons()],
@@ -57,7 +67,9 @@ class HtmlEditorScreen extends StatelessWidget {
                 ),
 
                 otherOptions: OtherOptions(
-                  height: MediaQuery.of(context).size.height - 112, // 56* 2 (appbar + toolbar)
+                  height:
+                      MediaQuery.of(context).size.height -
+                      112, // 56* 2 (appbar + toolbar)
                 ),
               ),
       ),

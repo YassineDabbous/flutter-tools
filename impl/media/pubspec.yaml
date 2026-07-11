@@ -5,20 +5,18 @@ homepage:
 publish_to: none
 
 environment:
-  sdk: ^3.11.0
+  sdk: ^3.12.0
+
+resolution: workspace
 
 dependencies:
   flutter:
     sdk: flutter
     
-  core:
-    path: ../../core
-  concrete:
-    path: ../../concrete
-  media_video:
-    path: ../media_video
-  media_audio:
-    path: ../media_audio
+  core: ^0.0.1
+  concrete: ^0.0.1
+  media_video: ^0.0.1
+  media_audio: ^0.0.1
 
 dev_dependencies:
   flutter_test:

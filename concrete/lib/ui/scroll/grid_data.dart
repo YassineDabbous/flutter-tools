@@ -48,9 +48,15 @@ class _DataGridState extends State<DataGrid> {
               ...widget.tools,
               const Spacer(),
               if (selection.isNotEmpty) Text('  ${selection.length} selected'),
-              IconButton(onPressed: widget.loadPrevious, icon: const Icon(Icons.chevron_left)),
+              IconButton(
+                onPressed: widget.loadPrevious,
+                icon: const Icon(Icons.chevron_left),
+              ),
               if (widget.page != 0) Text(' ${widget.page} '),
-              IconButton(onPressed: widget.loadNext, icon: const Icon(Icons.chevron_right)),
+              IconButton(
+                onPressed: widget.loadNext,
+                icon: const Icon(Icons.chevron_right),
+              ),
             ],
           ),
         ),
@@ -78,7 +84,9 @@ class _DataGridState extends State<DataGrid> {
                 onSelectChanged: !widget.selectionEnabled
                     ? null
                     : (b) => setState(() {
-                        (b != null && b) ? selection.add(rowIndex) : selection.remove(rowIndex);
+                        (b != null && b)
+                            ? selection.add(rowIndex)
+                            : selection.remove(rowIndex);
                         widget.onSelection?.call(selection);
                       }),
                 cells: widget.cellsBuilder(rowIndex),

@@ -5,9 +5,24 @@ class Message extends StatelessWidget {
   final String message;
   final Color color;
   final bool expand;
-  const Message({super.key, required this.message, this.color = Colors.lightBlue, this.expand = true});
-  const Message.error({super.key, required this.message, this.color = Colors.deepOrange, this.expand = true});
-  const Message.success({super.key, required this.message, this.color = Colors.lightGreen, this.expand = true});
+  const Message({
+    super.key,
+    required this.message,
+    this.color = Colors.lightBlue,
+    this.expand = true,
+  });
+  const Message.error({
+    super.key,
+    required this.message,
+    this.color = Colors.deepOrange,
+    this.expand = true,
+  });
+  const Message.success({
+    super.key,
+    required this.message,
+    this.color = Colors.lightGreen,
+    this.expand = true,
+  });
 
   @override
   Widget build(BuildContext context) {

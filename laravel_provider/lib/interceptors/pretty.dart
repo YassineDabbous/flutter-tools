@@ -14,8 +14,9 @@ class PrettyLogInterceptor extends PrettyDioLogger {
   });
 
   @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) { 
-    if(response.realUri.path.contains('home') || response.realUri.path.contains('customization')) {
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    if (response.realUri.path.contains('home') ||
+        response.realUri.path.contains('customization')) {
       handler.next(response);
       return;
     }

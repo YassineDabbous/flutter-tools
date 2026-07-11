@@ -61,7 +61,7 @@ class DeletingState extends AppState {
 class ActionSuccessState<ID> extends AppState {
   final ID id;
   const ActionSuccessState(this.id);
-  
+
   @override
   List<Object?> get props => [id];
 }

@@ -8,7 +8,8 @@ class AuthenticationCubit extends Cubit<AuthenticationState> {
   final AuthLocalManager repository;
 
   /// Initializes the BLoC and sets the initial state to [AuthenticationInitial].
-  AuthenticationCubit({required this.repository}) : super(AuthenticationInitial());
+  AuthenticationCubit({required this.repository})
+    : super(AuthenticationInitial());
 
   // --- State Modification Methods ---
 

@@ -33,7 +33,9 @@ class _MarkdownEditorScreenState extends State<MarkdownEditorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('edit content'.i18n()), // ${isSupported ? "" : "(${'html editor not supported on this plateform'.i18n()}.)"}
+        title: Text(
+          'edit content'.i18n(),
+        ), // ${isSupported ? "" : "(${'html editor not supported on this plateform'.i18n()}.)"}
         automaticallyImplyLeading: true,
         actions: [
           IconButton(
@@ -58,8 +60,20 @@ class _MarkdownEditorScreenState extends State<MarkdownEditorScreen> {
             // ),
             Row(
               children: [
-                TextButton.icon(icon: const Icon(Icons.code), label: Text('write'.i18n()), onPressed: !preview ? null : () => setState(() => preview = false)),
-                TextButton.icon(icon: const Icon(Icons.preview), label: Text('preview'.i18n()), onPressed: preview ? null : () => setState(() => preview = true)),
+                TextButton.icon(
+                  icon: const Icon(Icons.code),
+                  label: Text('write'.i18n()),
+                  onPressed: !preview
+                      ? null
+                      : () => setState(() => preview = false),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.preview),
+                  label: Text('preview'.i18n()),
+                  onPressed: preview
+                      ? null
+                      : () => setState(() => preview = true),
+                ),
                 if (!preview)
                   Expanded(
                     child: DraggableScroll(
@@ -80,7 +94,10 @@ class _MarkdownEditorScreenState extends State<MarkdownEditorScreen> {
                 controller: _textEditorController,
                 emojiConvert: false,
                 minLines: 20,
-                decoration: InputDecoration(hintText: 'type here'.i18n(), isDense: true),
+                decoration: InputDecoration(
+                  hintText: 'type here'.i18n(),
+                  isDense: true,
+                ),
               ),
             if (preview) MarkdownBody(data: _textEditorController.text),
 

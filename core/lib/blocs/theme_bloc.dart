@@ -21,7 +21,8 @@ class CustomTheme {
 class ThemeBloc extends Cubit<ThemeState> {
   final SharedPrefHelper prefHelper;
 
-  ThemeBloc({required this.prefHelper}) : super(ThemeState(theme: Core.get<Config>().themes.first));
+  ThemeBloc({required this.prefHelper})
+    : super(ThemeState(theme: Core.get<Config>().themes.first));
 
   int getThemeIndex() {
     return prefHelper.getThemeIndex();

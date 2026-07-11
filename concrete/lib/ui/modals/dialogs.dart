@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:concrete/concrete.dart';
 
-Future<T?> selectAndPop<T extends Object?>(BuildContext context, Widget screen) async {
-  return await Navigator.push<T>(context, PageRouteBuilder(pageBuilder: (context, animation, secondaryAnimation) => screen));
+Future<T?> selectAndPop<T extends Object?>(
+  BuildContext context,
+  Widget screen,
+) async {
+  return await Navigator.push<T>(
+    context,
+    PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => screen,
+    ),
+  );
 }
 
 class DialogMenuAction {
@@ -18,7 +26,11 @@ class DialogMenuAction {
   });
 }
 
-Future dialogMenu({required BuildContext context, required List<DialogMenuAction> items, String? title}) {
+Future dialogMenu({
+  required BuildContext context,
+  required List<DialogMenuAction> items,
+  String? title,
+}) {
   return showDialog(
     context: context,
     builder: (BuildContext ctx) {
@@ -48,7 +60,12 @@ Future dialogMenu({required BuildContext context, required List<DialogMenuAction
   );
 }
 
-Future dialogConfirmation({required BuildContext context, String? title, String? content, required Function() onConfirm}) async {
+Future dialogConfirmation({
+  required BuildContext context,
+  String? title,
+  String? content,
+  required Function() onConfirm,
+}) async {
   return await showDialog(
     context: context,
     builder: (ctx) {
@@ -78,15 +95,20 @@ Future dialogConfirmation({required BuildContext context, String? title, String?
   );
 }
 
-Future dialogButtons({required BuildContext context, Widget? title, Widget? content, required List<Widget> actions}) async {
+Future dialogButtons({
+  required BuildContext context,
+  Widget? title,
+  Widget? content,
+  required List<Widget> actions,
+}) async {
   return await showDialog(
     context: context,
     builder: (ctx) {
       return SizedBox(
         height: 100,
         child: AlertDialog(
-          title: title ,
-          content: content ,
+          title: title,
+          content: content,
           actions: [
             ...actions,
             // ElevatedButton(
@@ -102,7 +124,12 @@ Future dialogButtons({required BuildContext context, Widget? title, Widget? cont
   );
 }
 
-Future dialogValue({required BuildContext context, String? title, String? hint, required Function(String) onSubmit}) {
+Future dialogValue({
+  required BuildContext context,
+  String? title,
+  String? hint,
+  required Function(String) onSubmit,
+}) {
   TextEditingController tc = TextEditingController();
   return showDialog(
     context: context,
@@ -114,7 +141,11 @@ Future dialogValue({required BuildContext context, String? title, String? hint, 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              TextInput(controller: tc, hint: hint, leading: const Icon(Icons.key)),
+              TextInput(
+                controller: tc,
+                hint: hint,
+                leading: const Icon(Icons.key),
+              ),
               const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () {
@@ -140,7 +171,12 @@ Future dialogInfoSuccess({required BuildContext context, String? title}) {
   );
 }
 
-Future dialogInfo({required BuildContext context, required Widget content, String? title, double height = 100}) {
+Future dialogInfo({
+  required BuildContext context,
+  required Widget content,
+  String? title,
+  double height = 100,
+}) {
   return showDialog(
     context: context,
     builder: (ctx) {
@@ -172,7 +208,12 @@ Future dialogInfo({required BuildContext context, required Widget content, Strin
   );
 }
 
-Future dialogView({required BuildContext context, required Widget view, double? maxWidth, double? maxHeight}) {
+Future dialogView({
+  required BuildContext context,
+  required Widget view,
+  double? maxWidth,
+  double? maxHeight,
+}) {
   return showDialog(
     context: context,
     builder: (ctx) {
@@ -183,7 +224,13 @@ Future dialogView({required BuildContext context, required Widget view, double? 
   );
 }
 
-Future dialogExpandedView({required BuildContext context, required Widget view, double? margin, double? maxWidth, double? maxHeight}) {
+Future dialogExpandedView({
+  required BuildContext context,
+  required Widget view,
+  double? margin,
+  double? maxWidth,
+  double? maxHeight,
+}) {
   return showDialog(
     context: context,
     builder: (ctx) {
@@ -191,8 +238,13 @@ Future dialogExpandedView({required BuildContext context, required Widget view, 
         builder: (context, constraints) {
           return Center(
             child: SizedBox(
-              height: maxHeight ?? constraints.maxHeight - (margin ?? (constraints.maxHeight / 8)),
-              width: maxWidth ?? constraints.maxWidth - (margin ?? (constraints.maxWidth / 8)),
+              height:
+                  maxHeight ??
+                  constraints.maxHeight -
+                      (margin ?? (constraints.maxHeight / 8)),
+              width:
+                  maxWidth ??
+                  constraints.maxWidth - (margin ?? (constraints.maxWidth / 8)),
               child: view,
             ),
           );

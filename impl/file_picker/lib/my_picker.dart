@@ -3,7 +3,10 @@ import 'dart:typed_data';
 import 'package:core/core.dart' as core;
 import 'package:file_picker/file_picker.dart';
 
-Future pickOne({required core.FileType type, required Function(Uint8List?) onPick}) async {
+Future pickOne({
+  required core.FileType type,
+  required Function(Uint8List?) onPick,
+}) async {
   if (type == core.FileType.IMAGE) {
     await pickOneImage(onPick: onPick);
   } else if (type == core.FileType.VIDEO) {
@@ -30,15 +33,27 @@ Future pickOneImage({required Function(Uint8List?) onPick}) async {
 }
 
 Future pickOneSvg({required Function(Uint8List?) onPick}) async {
-  await pickOneFileData(onPick: onPick, type: FileType.custom, allowedExtensions: ['svg']);
+  await pickOneFileData(
+    onPick: onPick,
+    type: FileType.custom,
+    allowedExtensions: ['svg'],
+  );
 }
 
 Future pickOnePdf({required Function(Uint8List?) onPick}) async {
-  await pickOneFileData(onPick: onPick, type: FileType.custom, allowedExtensions: ['pdf']);
+  await pickOneFileData(
+    onPick: onPick,
+    type: FileType.custom,
+    allowedExtensions: ['pdf'],
+  );
 }
 
 Future pickOneGltf({required Function(Uint8List?) onPick}) async {
-  await pickOneFileData(onPick: onPick, type: FileType.custom, allowedExtensions: ['gltf', 'glb']);
+  await pickOneFileData(
+    onPick: onPick,
+    type: FileType.custom,
+    allowedExtensions: ['gltf', 'glb'],
+  );
 }
 
 Future pickOneVideo({required Function(Uint8List?) onPick}) async {
@@ -46,11 +61,24 @@ Future pickOneVideo({required Function(Uint8List?) onPick}) async {
 }
 
 Future pickOneVR({required Function(Uint8List?) onPick}) async {
-  await pickOneFileData(onPick: onPick, type: FileType.custom, allowedExtensions: ['mp4']); // m3u8
+  await pickOneFileData(
+    onPick: onPick,
+    type: FileType.custom,
+    allowedExtensions: ['mp4'],
+  ); // m3u8
 }
 
-Future pickOneFileData({required Function(Uint8List?) onPick, FileType type = FileType.any, List<String>? allowedExtensions}) async {
-  FilePickerResult? result = await FilePicker.platform.pickFiles(type: type, allowMultiple: false, withData: true, allowedExtensions: allowedExtensions);
+Future pickOneFileData({
+  required Function(Uint8List?) onPick,
+  FileType type = FileType.any,
+  List<String>? allowedExtensions,
+}) async {
+  FilePickerResult? result = await FilePicker.platform.pickFiles(
+    type: type,
+    allowMultiple: false,
+    withData: true,
+    allowedExtensions: allowedExtensions,
+  );
   if (result != null) {
     Uint8List? file = result.files.single.bytes;
     onPick(file);
@@ -59,8 +87,17 @@ Future pickOneFileData({required Function(Uint8List?) onPick, FileType type = Fi
   }
 }
 
-Future pickOneFilePath({required Function(String?) onPick, FileType type = FileType.any, List<String>? allowedExtensions}) async {
-  FilePickerResult? result = await FilePicker.platform.pickFiles(type: type, allowMultiple: false, withData: true, allowedExtensions: allowedExtensions);
+Future pickOneFilePath({
+  required Function(String?) onPick,
+  FileType type = FileType.any,
+  List<String>? allowedExtensions,
+}) async {
+  FilePickerResult? result = await FilePicker.platform.pickFiles(
+    type: type,
+    allowMultiple: false,
+    withData: true,
+    allowedExtensions: allowedExtensions,
+  );
   if (result != null) {
     onPick(result.files.single.path);
   } else {
@@ -69,7 +106,9 @@ Future pickOneFilePath({required Function(String?) onPick, FileType type = FileT
 }
 
 Future pickMulti(Function(List<Uint8List?>?) onPick) async {
-  FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true);
+  FilePickerResult? result = await FilePicker.platform.pickFiles(
+    allowMultiple: true,
+  );
   if (result != null) {
     //List<File> files = result.paths.map((path) => File(path!)).toList();
     List<Uint8List?> files = result.files.map((file) => file.bytes).toList();

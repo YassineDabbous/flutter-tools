@@ -11,7 +11,8 @@ class IntroducerModel {
 
   Map<String, dynamic> toJson() => {'onboarding': onboarding};
 
-  factory IntroducerModel.fromJson(Map<String, dynamic> json) => IntroducerModel(onboarding: json['onboarding'] as bool? ?? false);
+  factory IntroducerModel.fromJson(Map<String, dynamic> json) =>
+      IntroducerModel(onboarding: json['onboarding'] as bool? ?? false);
 }
 
 /// Manages the state of the app's onboarding and feature introduction status.
@@ -19,7 +20,8 @@ class IntroducerBloc extends Cubit<IntroducerState> {
   final SharedPrefHelper prefHelper;
 
   /// Initializes the Cubit with [IntroducerInitialState].
-  IntroducerBloc({required this.prefHelper}) : super(const IntroducerInitialState());
+  IntroducerBloc({required this.prefHelper})
+    : super(const IntroducerInitialState());
 
   /// Loads the persisted [IntroducerModel] from storage and emits [IntroducerLoadedState].
   /// Defaults to a new [IntroducerModel] if none is found.

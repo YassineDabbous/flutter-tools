@@ -8,7 +8,12 @@ class FileFieldPicker extends StatelessWidget {
   final FileField file;
   final String? emptyMsg;
   final Function(Uint8List?) onPick;
-  const FileFieldPicker({super.key, required this.file, this.emptyMsg, required this.onPick});
+  const FileFieldPicker({
+    super.key,
+    required this.file,
+    this.emptyMsg,
+    required this.onPick,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,19 +49,27 @@ class FileFieldPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEmpty = file.data == null && file.fullUrl == null;
-    final filledColor = isEmpty ? null : context.colorScheme.primary.withOpacity(0.3);
+    final filledColor = isEmpty
+        ? null
+        : context.colorScheme.primary.withOpacity(0.3);
     switch (file.type) {
       case FileType.IMAGE:
         if (isEmpty) {
           return Container(
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300)),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+            ),
             child: const Center(child: Icon(Icons.image_outlined)),
           );
         }
         return file.isOnline && file.data == null
             ? Opacity(
                 opacity: file.shouldBeRemoved ? 0.5 : 1,
-                child: Img.network(file.fullUrl, fit: BoxFit.fitHeight, emptyMsg: emptyMsg),
+                child: Img.network(
+                  file.fullUrl,
+                  fit: BoxFit.fitHeight,
+                  emptyMsg: emptyMsg,
+                ),
               )
             : Img.memory(file.data!, fit: BoxFit.fill, emptyMsg: emptyMsg);
       case FileType.VIDEO:
@@ -67,7 +80,11 @@ class FileFieldPreview extends StatelessWidget {
               color: filledColor,
               border: Border.all(color: Colors.grey.shade300),
             ),
-            child: Center(child: Icon(isEmpty ? Icons.video_file_outlined : Icons.video_file)),
+            child: Center(
+              child: Icon(
+                isEmpty ? Icons.video_file_outlined : Icons.video_file,
+              ),
+            ),
           ),
         );
       case FileType.AUDIO:
@@ -78,7 +95,11 @@ class FileFieldPreview extends StatelessWidget {
               color: filledColor,
               border: Border.all(color: Colors.grey.shade300),
             ),
-            child: Center(child: Icon(isEmpty ? Icons.audio_file_outlined : Icons.audio_file)),
+            child: Center(
+              child: Icon(
+                isEmpty ? Icons.audio_file_outlined : Icons.audio_file,
+              ),
+            ),
           ),
         );
       default:
@@ -89,7 +110,11 @@ class FileFieldPreview extends StatelessWidget {
               color: filledColor,
               border: Border.all(color: Colors.grey.shade300),
             ),
-            child: Center(child: Icon(isEmpty ? Icons.file_present : Icons.file_present_sharp)),
+            child: Center(
+              child: Icon(
+                isEmpty ? Icons.file_present : Icons.file_present_sharp,
+              ),
+            ),
           ),
         );
     }

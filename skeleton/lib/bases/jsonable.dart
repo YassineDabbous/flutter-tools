@@ -7,7 +7,10 @@ abstract class Jsonable {
 abstract class JsonableFromTo<T> extends Jsonable {
   T fromJson(Map<String, dynamic> json);
 
-  T merge(JsonableFromTo fixed) => fromJson(toJson()..addAll(fixed.toJson()..removeWhere((key, value) => value == null)));
+  T merge(JsonableFromTo fixed) => fromJson(
+    toJson()
+      ..addAll(fixed.toJson()..removeWhere((key, value) => value == null)),
+  );
 }
 
 abstract class SuperModel<T> extends JsonableFromTo<T> {}
@@ -21,6 +24,7 @@ abstract class Labelable {
   String get label;
 }
 
-abstract class BaseModel<T> extends Jsonable implements Identifiable<T>, Labelable {
+abstract class BaseModel<T> extends Jsonable
+    implements Identifiable<T>, Labelable {
   String getLabel() => label;
 }

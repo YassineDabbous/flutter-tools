@@ -12,16 +12,28 @@ class Authenticity extends StatefulWidget {
   final bool Function(AuthResponse)? condition;
 
   /// **Soft Mode:** Shows [guest] if not authenticated, executes [onChecked], but avoids forced redirection.
-  const Authenticity.soft({super.key, this.onChecked, this.condition, this.guest = const Guest(), required this.child}) : strict = false, assert(guest != null);
+  const Authenticity.soft({
+    super.key,
+    this.onChecked,
+    this.condition,
+    this.guest = const Guest(),
+    required this.child,
+  }) : strict = false,
+       assert(guest != null);
 
   /// **Hard Mode:** Performs mandatory redirection if the auth state conflicts with the current route.
-  const Authenticity.hard({super.key, required this.child}) : strict = true, guest = null, onChecked = null, condition = null;
+  const Authenticity.hard({super.key, required this.child})
+    : strict = true,
+      guest = null,
+      onChecked = null,
+      condition = null;
 
   @override
   State<Authenticity> createState() => _AuthenticityState();
 }
 
-class _AuthenticityState extends ControlledState<Authenticity, AuthCheckerCubit> {
+class _AuthenticityState
+    extends ControlledState<Authenticity, AuthCheckerCubit> {
   bool isGuestPath = false;
 
   /// Listener for the 'hard' enforcement mode. This mode forces navigation
@@ -37,7 +49,9 @@ class _AuthenticityState extends ControlledState<Authenticity, AuthCheckerCubit>
     } else if (state is AuthNotIdentified) {
       // If user is logged out and on a protected route, redirect to the appropriate logout page.
       if (!isGuestPath) {
-        final redirectRoute = state.hard ? Core.get<R>().redirectAfterHardLogout : Core.get<R>().redirectAfterLogout;
+        final redirectRoute = state.hard
+            ? Core.get<R>().redirectAfterHardLogout
+            : Core.get<R>().redirectAfterLogout;
         Core.nav.pushReplacement(redirectRoute);
       }
     } else if (state is AuthCheckingFailure) {
@@ -61,7 +75,9 @@ class _AuthenticityState extends ControlledState<Authenticity, AuthCheckerCubit>
     } else if (state is AuthCheckingFailure) {
       logAuth.debug('AuthCheckingFailure: ${state.message}');
     } else {
-      logAuth.debug('Authenticity.listenerSoft (unhandled state) • ==> ${state.runtimeType}');
+      logAuth.debug(
+        'Authenticity.listenerSoft (unhandled state) • ==> ${state.runtimeType}',
+      );
     }
   }
 
@@ -80,7 +96,9 @@ class _AuthenticityState extends ControlledState<Authenticity, AuthCheckerCubit>
               return const CircularProgressIndicator();
             } else if (state is AuthNotIdentified) {
               // If not identified, show guest UI if the path is protected, otherwise show the child (e.g., login screen).
-              return !isGuestPath ? (widget.guest ?? const Guest()) : widget.child;
+              return !isGuestPath
+                  ? (widget.guest ?? const Guest())
+                  : widget.child;
             } else if (state is AuthIdentified || widget.strict) {
               // If authenticated, or if in hard mode (where non-auth users are already redirected).
               if (widget.condition != null) {
@@ -94,7 +112,13 @@ class _AuthenticityState extends ControlledState<Authenticity, AuthCheckerCubit>
               return widget.child;
             }
             // Fallback for unexpected states during the authentication process.
-            return Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text('|> Unhandled AuthCheckerState: ${state.runtimeType} <|'), widget.guest ?? const Guest()]);
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('|> Unhandled AuthCheckerState: ${state.runtimeType} <|'),
+                widget.guest ?? const Guest(),
+              ],
+            );
           },
         ),
       ),

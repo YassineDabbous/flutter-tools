@@ -13,13 +13,18 @@ abstract class MyBaseState<StateType> extends Equatable {
   StateType error({required String error, int code = 0});
 
   /// creates an Authorization Error state
-  StateType unauthorized({required String message, int code = 0}) => error(error: message, code: code);
+  StateType unauthorized({required String message, int code = 0}) =>
+      error(error: message, code: code);
 
   /// creates a Validation Error state
   StateType validation(Map<String, dynamic> bag);
 }
 
-abstract class MyBaseBloc<ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>, BaseState extends MyBaseState> extends Cubit<BaseState> {
+abstract class MyBaseBloc<
+  ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>,
+  BaseState extends MyBaseState
+>
+    extends Cubit<BaseState> {
   /// API instance
   ApiType? api;
 

@@ -7,7 +7,13 @@ class TranslationFields extends StatefulWidget {
   final Map<String, String> initial;
   final Map<String, String> locals;
   final dynamic Function(String, String) onChanged;
-  const TranslationFields({super.key, required this.initial, required this.onChanged, this.leading, this.locals = const {'en': 'English', 'ar': 'Arabic'}});
+  const TranslationFields({
+    super.key,
+    required this.initial,
+    required this.onChanged,
+    this.leading,
+    this.locals = const {'en': 'English', 'ar': 'Arabic'},
+  });
 
   @override
   State<TranslationFields> createState() => _TranslationFieldsState();
@@ -32,7 +38,12 @@ class _TranslationFieldsState extends State<TranslationFields> {
               .map(
                 (e) => Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: TextInput(leading: widget.leading, hint: e.value, initialValue: widget.initial[e.key] ?? '', onChanged: (p0) => widget.onChanged(e.key, p0)),
+                  child: TextInput(
+                    leading: widget.leading,
+                    hint: e.value,
+                    initialValue: widget.initial[e.key] ?? '',
+                    onChanged: (p0) => widget.onChanged(e.key, p0),
+                  ),
                   // child: Row(
                   //   children: [
                   //     Padding(

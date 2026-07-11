@@ -60,10 +60,12 @@ class DropDownMultiMapSelect<K, V> extends StatefulWidget {
   });
 
   @override
-  State<DropDownMultiMapSelect<K, V>> createState() => _DropDownMultiMapSelectState<K, V>();
+  State<DropDownMultiMapSelect<K, V>> createState() =>
+      _DropDownMultiMapSelectState<K, V>();
 }
 
-class _DropDownMultiMapSelectState<K, V> extends State<DropDownMultiMapSelect<K, V>> {
+class _DropDownMultiMapSelectState<K, V>
+    extends State<DropDownMultiMapSelect<K, V>> {
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -74,17 +76,21 @@ class _DropDownMultiMapSelectState<K, V> extends State<DropDownMultiMapSelect<K,
         Padding(
           padding: widget.decoration != null
               ? widget.decoration!.contentPadding != null
-                  ? widget.decoration!.contentPadding!
-                  : const EdgeInsets.symmetric(horizontal: 10)
+                    ? widget.decoration!.contentPadding!
+                    : const EdgeInsets.symmetric(horizontal: 10)
               : const EdgeInsets.symmetric(horizontal: 10),
           child: Padding(
             padding: const EdgeInsets.only(right: 20),
             child: Text(
-                widget.selectedValues.isNotEmpty
-                    ? widget.options.entries.where((e) => widget.selectedValues.contains(e.key)).map((e) => e.value).join(', ')
-                    : widget.whenEmpty ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
+              widget.selectedValues.isNotEmpty
+                  ? widget.options.entries
+                        .where((e) => widget.selectedValues.contains(e.key))
+                        .map((e) => e.value)
+                        .join(', ')
+                  : widget.whenEmpty ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ), //)
         DropdownButtonFormField<K>(
@@ -92,17 +98,25 @@ class _DropDownMultiMapSelectState<K, V> extends State<DropDownMultiMapSelect<K,
           style: widget.hintStyle,
           icon: widget.icon,
           // validator: widget.validator ?? widget.validator,
-          decoration: widget.decoration ??
+          decoration:
+              widget.decoration ??
               const InputDecoration(
                 border: OutlineInputBorder(),
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 15,
+                  horizontal: 10,
+                ),
               ),
           isDense: widget.isDense,
           onChanged: widget.enabled ? (x) {} : null,
           isExpanded: false,
-          value: widget.selectedValues.isNotEmpty ? widget.selectedValues[0] : null,
-          selectedItemBuilder: (context) => widget.options.entries.map((e) => const DropdownMenuItem(child: SizedBox())).toList(),
+          value: widget.selectedValues.isNotEmpty
+              ? widget.selectedValues[0]
+              : null,
+          selectedItemBuilder: (context) => widget.options.entries
+              .map((e) => const DropdownMenuItem(child: SizedBox()))
+              .toList(),
           items: widget.options.entries
               .map(
                 (x) => DropdownMenuItem<K>(
@@ -141,7 +155,11 @@ class _SelectRow extends StatefulWidget {
   final bool selected;
   final dynamic text;
 
-  const _SelectRow({required this.onChange, required this.selected, required this.text});
+  const _SelectRow({
+    required this.onChange,
+    required this.selected,
+    required this.text,
+  });
 
   @override
   State<_SelectRow> createState() => _SelectRowState();
@@ -168,13 +186,14 @@ class _SelectRowState extends State<_SelectRow> {
         child: Row(
           children: [
             Checkbox(
-                value: isSelected,
-                onChanged: (x) {
-                  isSelected = x ?? false;
-                  widget.onChange(isSelected);
-                  setState(() {});
-                }),
-            Text(widget.text.toString())
+              value: isSelected,
+              onChanged: (x) {
+                isSelected = x ?? false;
+                widget.onChange(isSelected);
+                setState(() {});
+              },
+            ),
+            Text(widget.text.toString()),
           ],
         ),
       ),

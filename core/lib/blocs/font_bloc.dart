@@ -5,7 +5,8 @@ import 'package:equatable/equatable.dart';
 class FontBloc extends Cubit<FontState> {
   static const int defaultSize = 16;
   final SharedPrefHelper prefHelper;
-  FontBloc({required this.prefHelper}) : super(const FontState(size: FontBloc.defaultSize));
+  FontBloc({required this.prefHelper})
+    : super(const FontState(size: FontBloc.defaultSize));
 
   Future<void> getFont() async {
     var size = prefHelper.getFontSize();

@@ -9,7 +9,10 @@ class AuthInterceptor extends Interceptor {
   AuthInterceptor(this._config, this._authManager, this._prefHelper);
 
   @override
-  Future onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  Future onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     options.headers["Accept"] = "application/json";
     options.headers['Tenant-Id'] = _config.appID.toString();
 

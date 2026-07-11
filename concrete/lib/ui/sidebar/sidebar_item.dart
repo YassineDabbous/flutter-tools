@@ -4,11 +4,25 @@ import 'package:core/core.dart';
 
 // ignore: must_be_immutable
 class SideBarItem extends StatelessWidget {
-  SideBarItem({super.key, required this.title, this.icon, this.press, this.children = const [], this.path, this.index, this.active, this.onActive, this.tab = 0.0})
-    : assert(children.isEmpty || press == null);
+  SideBarItem({
+    super.key,
+    required this.title,
+    this.icon,
+    this.press,
+    this.children = const [],
+    this.path,
+    this.index,
+    this.active,
+    this.onActive,
+    this.tab = 0.0,
+  }) : assert(children.isEmpty || press == null);
 
   List<SideBarItem> getChildren() {
-    return [if (path != null) SideBarItem(tab: 20, title: title, active: active, path: path), ...children];
+    return [
+      if (path != null)
+        SideBarItem(tab: 20, title: title, active: active, path: path),
+      ...children,
+    ];
   }
 
   void fix() {
@@ -33,7 +47,8 @@ class SideBarItem extends StatelessWidget {
 
   bool get isDivider => path == '';
 
-  bool get isActive => (active ?? false) || (path != null && Core.nav.path.startsWith(path!));
+  bool get isActive =>
+      (active ?? false) || (path != null && Core.nav.path.startsWith(path!));
   void onTap() {
     if (press != null) {
       press?.call();
@@ -52,7 +67,8 @@ class SideBarItem extends StatelessWidget {
     if (index != null && onActive != null && isActive) {
       onActive?.call(index!);
     }
-    final expanded = isActive || (children.where((element) => element.isActive).isNotEmpty);
+    final expanded =
+        isActive || (children.where((element) => element.isActive).isNotEmpty);
     return Row(
       children: [
         SizedBox(width: tab),
@@ -65,7 +81,13 @@ class SideBarItem extends StatelessWidget {
                   title: Text(title),
                   selected: isActive,
                 )
-              : ExpansionTile(trailing: const SizedBox(), initiallyExpanded: expanded, leading: Icon(icon), title: Text(title), children: getChildren()),
+              : ExpansionTile(
+                  trailing: const SizedBox(),
+                  initiallyExpanded: expanded,
+                  leading: Icon(icon),
+                  title: Text(title),
+                  children: getChildren(),
+                ),
         ),
       ],
     );
@@ -108,7 +130,9 @@ class TwoSidedTextBars extends StatelessWidget {
           child: Container(
             height: 1.0, // Thickness of the bar
             color: Colors.grey, // Color of the bar
-            margin: const EdgeInsets.only(right: 10.0), // Space between bar and text
+            margin: const EdgeInsets.only(
+              right: 10.0,
+            ), // Space between bar and text
           ),
         ),
 
@@ -129,7 +153,9 @@ class TwoSidedTextBars extends StatelessWidget {
           child: Container(
             height: 1.0, // Thickness of the bar
             color: Colors.grey, // Color of the bar
-            margin: const EdgeInsets.only(left: 10.0), // Space between text and bar
+            margin: const EdgeInsets.only(
+              left: 10.0,
+            ), // Space between text and bar
           ),
         ),
       ],

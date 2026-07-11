@@ -10,7 +10,13 @@ class JsonTableEditor extends StatefulWidget {
   final List<String> columns;
   final OnJsonChanged onChange;
 
-  const JsonTableEditor({super.key, required this.initial, required this.rows, required this.onChange, this.columns = const ['en', 'ar', 'fr']});
+  const JsonTableEditor({
+    super.key,
+    required this.initial,
+    required this.rows,
+    required this.onChange,
+    this.columns = const ['en', 'ar', 'fr'],
+  });
 
   @override
   State<JsonTableEditor> createState() => _JsonTranslationEditorState();
@@ -49,7 +55,8 @@ class _JsonTranslationEditorState extends State<JsonTableEditor> {
   void _updateTranslation(String field, String locale, String newValue) {
     setState(() {
       // 1. Update the local state
-      if (_currentTranslations.containsKey(field) && _currentTranslations[field] is Map) {
+      if (_currentTranslations.containsKey(field) &&
+          _currentTranslations[field] is Map) {
         _currentTranslations[field][locale] = newValue;
       }
       // 2. Call the external onChange function with the new JSON value
@@ -68,11 +75,17 @@ class _JsonTranslationEditorState extends State<JsonTableEditor> {
           // Define the header row with 'Field' and all supported locales
           columns: [
             const DataColumn(
-              label: Text('Field', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(
+                'Field',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
             ...widget.columns.map(
               (locale) => DataColumn(
-                label: Text(locale.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold)),
+                label: Text(
+                  locale.toUpperCase(),
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -85,11 +98,16 @@ class _JsonTranslationEditorState extends State<JsonTableEditor> {
                 // 2. Translation Input Cells for each locale
                 ...widget.columns.map((locale) {
                   // Get the current text value for this field and locale
-                  String initialValue = _currentTranslations.containsKey(field) && _currentTranslations[field].containsKey(locale) ? _currentTranslations[field][locale] ?? '' : '';
+                  String initialValue =
+                      _currentTranslations.containsKey(field) &&
+                          _currentTranslations[field].containsKey(locale)
+                      ? _currentTranslations[field][locale] ?? ''
+                      : '';
 
                   return DataCell(
                     SizedBox(
-                      width: 150, // Fixed width for inputs to look good in the table
+                      width:
+                          150, // Fixed width for inputs to look good in the table
                       child: TextFormField(
                         initialValue: initialValue,
                         // The key is important to manage state of TextFormFields dynamically
@@ -98,10 +116,14 @@ class _JsonTranslationEditorState extends State<JsonTableEditor> {
                           hintText: 'Enter $locale value',
                           border: const OutlineInputBorder(),
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
                         ),
                         // Trigger the update on every change
-                        onChanged: (newValue) => _updateTranslation(field, locale, newValue),
+                        onChanged: (newValue) =>
+                            _updateTranslation(field, locale, newValue),
                       ),
                     ),
                   );

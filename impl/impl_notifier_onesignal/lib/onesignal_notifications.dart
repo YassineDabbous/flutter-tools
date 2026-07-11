@@ -5,12 +5,15 @@ import 'package:flutter/foundation.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 class OneSignalNotificationImpl extends Notifier {
-  static final bool isSupported = !kIsWeb && !Platform.isWindows && !Platform.isLinux;
+  static final bool isSupported =
+      !kIsWeb && !Platform.isWindows && !Platform.isLinux;
 
   @override
   Future init() async {
     if (!isSupported) {
-      logNet.debug('○○○ init: OneSignal notifications not supported on this plateform');
+      logNet.debug(
+        '○○○ init: OneSignal notifications not supported on this plateform',
+      );
       return false;
     }
     logNet.debug('○○○ RemoteNotificationImpl init');
@@ -22,7 +25,9 @@ class OneSignalNotificationImpl extends Notifier {
   @override
   Future<bool> logout() async {
     if (!isSupported) {
-      logNet.debug('○○○ logout: OneSignal notifications not supported on this plateform');
+      logNet.debug(
+        '○○○ logout: OneSignal notifications not supported on this plateform',
+      );
       return false;
     }
     logNet.debug('○○○ RemoteNotificationImpl logout');
@@ -33,7 +38,9 @@ class OneSignalNotificationImpl extends Notifier {
   @override
   Future<bool> unsubscribe(int id) async {
     if (!isSupported) {
-      logNet.debug('○○○ remove: OneSignal notifications not supported on this plateform');
+      logNet.debug(
+        '○○○ remove: OneSignal notifications not supported on this plateform',
+      );
       return false;
     }
     logNet.debug('○○○ RemoteNotificationImpl remove');
@@ -44,7 +51,9 @@ class OneSignalNotificationImpl extends Notifier {
   @override
   Future<bool> subscribe(int id) async {
     if (!isSupported) {
-      logNet.debug('○○○ subscribe: OneSignal notifications not supported on this plateform');
+      logNet.debug(
+        '○○○ subscribe: OneSignal notifications not supported on this plateform',
+      );
       return false;
     }
     logNet.debug('○○○ RemoteNotificationImpl subscribe to $id');
@@ -55,7 +64,9 @@ class OneSignalNotificationImpl extends Notifier {
   @override
   Future<bool> subscribeTo(String tag) async {
     if (!isSupported) {
-      logNet.debug('○○○ subscribe: OneSignal notifications not supported on this plateform');
+      logNet.debug(
+        '○○○ subscribe: OneSignal notifications not supported on this plateform',
+      );
       return false;
     }
     logNet.debug('○○○ RemoteNotificationImpl subscribeTo to $tag');
@@ -66,7 +77,9 @@ class OneSignalNotificationImpl extends Notifier {
   @override
   Future<bool> unSubscribeFrom(String tag) async {
     if (!isSupported) {
-      logNet.debug('○○○ subscribe: OneSignal notifications not supported on this plateform');
+      logNet.debug(
+        '○○○ subscribe: OneSignal notifications not supported on this plateform',
+      );
       return false;
     }
     logNet.debug('○○○ RemoteNotificationImpl subscribeTo to $tag');

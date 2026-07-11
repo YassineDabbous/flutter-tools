@@ -2,7 +2,11 @@ import 'dart:async';
 import 'package:skeleton/skeleton.dart';
 
 /// Mixin for real-time synchronization of Cubit state.
-mixin RealtimeSync<ApiType extends BaseApiService, BaseState extends MyBaseState> on MyBaseBloc<ApiType, BaseState> {
+mixin RealtimeSync<
+  ApiType extends BaseApiService,
+  BaseState extends MyBaseState
+>
+    on MyBaseBloc<ApiType, BaseState> {
   StreamSubscription? _syncSubscription;
 
   /// Starts listening to a stream of updates.

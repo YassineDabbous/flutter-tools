@@ -5,8 +5,10 @@ homepage:
 publish_to: none
 
 environment:
-  sdk: ^3.11.0
+  sdk: ^3.12.0
   flutter: ">=3.0.0"
+
+resolution: workspace
 
 dependencies:
   flutter:
@@ -17,11 +19,11 @@ dependencies:
     sdk: flutter
 
   injector: ^4.0.0
-  equatable: ^2.0.7
+  equatable: ^2.1.0
   flutter_bloc: ^9.1.1
   shared_preferences: ^2.5.3
   loggy: ^2.0.3
-  bloc: ^9.0.0
+  bloc: ^9.2.1
   intl: ^0.20.2
 
 dev_dependencies:

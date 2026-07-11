@@ -12,9 +12,17 @@ class EnvConfig {
     required this.apiKey,
   });
 
-  static EnvConfig dev({required String baseUrl, String apiKey = ''}) => 
-    EnvConfig(environment: AppEnvironment.dev, baseUrl: baseUrl, apiKey: apiKey);
+  static EnvConfig dev({required String baseUrl, String apiKey = ''}) =>
+      EnvConfig(
+        environment: AppEnvironment.dev,
+        baseUrl: baseUrl,
+        apiKey: apiKey,
+      );
 
-  static EnvConfig prod({required String baseUrl, String apiKey = ''}) => 
-    EnvConfig(environment: AppEnvironment.prod, baseUrl: baseUrl, apiKey: apiKey);
+  static EnvConfig prod({required String baseUrl, String apiKey = ''}) =>
+      EnvConfig(
+        environment: AppEnvironment.prod,
+        baseUrl: baseUrl,
+        apiKey: apiKey,
+      );
 }

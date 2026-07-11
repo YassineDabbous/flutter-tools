@@ -38,10 +38,17 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         onTap: () {
           logUI.debug('click ${!_controller.value.isPlaying}');
           setState(() {
-            _controller.value.isPlaying ? _controller.pause() : _controller.play();
+            _controller.value.isPlaying
+                ? _controller.pause()
+                : _controller.play();
           });
         },
-        child: (_controller.value.isInitialized) ? AspectRatio(aspectRatio: _controller.value.aspectRatio, child: VideoPlayer(_controller)) : const CircularProgressIndicator(),
+        child: (_controller.value.isInitialized)
+            ? AspectRatio(
+                aspectRatio: _controller.value.aspectRatio,
+                child: VideoPlayer(_controller),
+              )
+            : const CircularProgressIndicator(),
       ),
     );
   }

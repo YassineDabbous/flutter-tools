@@ -69,7 +69,8 @@ class LoadMoreWidgetState extends State<LoadMoreWidget> {
 
   // ------------------------
   int getItemsCount() {
-    if (!widget.adsEnabled || widget.adsAfter == 0 || widget.itemCount == 0) return widget.itemCount;
+    if (!widget.adsEnabled || widget.adsAfter == 0 || widget.itemCount == 0)
+      return widget.itemCount;
     int s = widget.itemCount;
     int p = (s ~/ (widget.adsAfter));
     int t = s + p;
@@ -78,7 +79,8 @@ class LoadMoreWidgetState extends State<LoadMoreWidget> {
   }
 
   Widget builder(BuildContext ctx, int position) {
-    if (widget.adsEnabled && (position % (widget.adsAfter + 1)) == widget.adsAfter) {
+    if (widget.adsEnabled &&
+        (position % (widget.adsAfter + 1)) == widget.adsAfter) {
       return Container(
         color: Colors.red,
         child: const Center(child: Text('ADS')),
@@ -98,7 +100,9 @@ class LoadMoreWidgetState extends State<LoadMoreWidget> {
       child: CustomScrollView(
         reverse: widget.reverse,
         shrinkWrap: widget.noScrolling,
-        physics: widget.noScrolling ? const NeverScrollableScrollPhysics() : null,
+        physics: widget.noScrolling
+            ? const NeverScrollableScrollPhysics()
+            : null,
         scrollDirection: widget.scrollDirection,
         //controller: _scrollController,
         slivers: <Widget>[
@@ -126,19 +130,39 @@ class LoadMoreWidgetState extends State<LoadMoreWidget> {
               padding: widget.padding,
               sliver: widget.isRefreshing
                   ? (widget.shimmerBuilder == null
-                        ? const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()))
-                        : SliverList(delegate: SliverChildBuilderDelegate(widget.shimmerBuilder!, childCount: widget.shimmerCount)))
-                  : SliverList(delegate: SliverChildBuilderDelegate(builder, childCount: getItemsCount())),
+                        ? const SliverToBoxAdapter(
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        : SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              widget.shimmerBuilder!,
+                              childCount: widget.shimmerCount,
+                            ),
+                          ))
+                  : SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        builder,
+                        childCount: getItemsCount(),
+                      ),
+                    ),
             ),
           if (widget.crossAxisCount > 1 && !widget.staggeredGrid)
             SliverPadding(
               padding: widget.padding,
               sliver: widget.isRefreshing
                   ? (widget.shimmerBuilder == null
-                        ? const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()))
+                        ? const SliverToBoxAdapter(
+                            child: Center(child: CircularProgressIndicator()),
+                          )
                         : SliverGrid(
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: widget.crossAxisCount),
-                            delegate: SliverChildBuilderDelegate(widget.shimmerBuilder!, childCount: widget.shimmerCount),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: widget.crossAxisCount,
+                                ),
+                            delegate: SliverChildBuilderDelegate(
+                              widget.shimmerBuilder!,
+                              childCount: widget.shimmerCount,
+                            ),
                           ))
                   : SliverGrid(
                       //gridDelegate: widget.gridDelegate!,
@@ -148,7 +172,10 @@ class LoadMoreWidgetState extends State<LoadMoreWidget> {
                         mainAxisSpacing: widget.axisSpacing,
                         crossAxisSpacing: widget.axisSpacing,
                       ),
-                      delegate: SliverChildBuilderDelegate(builder, childCount: getItemsCount()),
+                      delegate: SliverChildBuilderDelegate(
+                        builder,
+                        childCount: getItemsCount(),
+                      ),
                     ),
             ),
 
@@ -157,27 +184,19 @@ class LoadMoreWidgetState extends State<LoadMoreWidget> {
               padding: widget.padding,
               sliver: widget.isRefreshing
                   ? (widget.shimmerBuilder == null
-                        ? const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()))
-                        : SliverStaggeredGrid.countBuilder(
-                            crossAxisCount: widget.crossAxisCount,
-                            staggeredTileBuilder: (_) => const StaggeredTile.fit(1),
-                            itemBuilder: widget.shimmerBuilder!,
-                            itemCount: widget.shimmerCount,
-                            //children: List.generate(widget.shimmerCount, (index) => widget.shimmerBuilder!(context, index)),
+                        ? const SliverToBoxAdapter(
+                            child: Center(child: CircularProgressIndicator()),
                           )
-                    //  SliverToBoxAdapter(
-                    //       child: MasonryGridView.count(
-                    //         crossAxisCount: widget.crossAxisCount,
-                    //         itemCount: widget.shimmerCount,
-                    //         itemBuilder: (context, index) => widget.shimmerBuilder!(context, index),
-                    //       ),
-                    //     )
+                        : SliverMasonryGrid.count(
+                            crossAxisCount: widget.crossAxisCount,
+                            itemBuilder: widget.shimmerBuilder!,
+                            childCount: widget.shimmerCount,
+                          )
                     )
-                  : SliverStaggeredGrid.countBuilder(
+                  : SliverMasonryGrid.count(
                       crossAxisCount: widget.crossAxisCount,
-                      staggeredTileBuilder: (_) => const StaggeredTile.fit(1),
                       itemBuilder: builder,
-                      itemCount: getItemsCount(),
+                      childCount: getItemsCount(),
                     ),
               // SliverToBoxAdapter(
               //       child: MasonryGridView.count(
@@ -222,11 +241,18 @@ class LoadMoreWidgetState extends State<LoadMoreWidget> {
     }
     if (widget.scrollDirection == notification.metrics.axis) {
       if (notification is ScrollUpdateNotification) {
-        if (!widget.reverse && notification.metrics.maxScrollExtent > notification.metrics.pixels && notification.metrics.maxScrollExtent - notification.metrics.pixels <= 100) {
+        if (!widget.reverse &&
+            notification.metrics.maxScrollExtent >
+                notification.metrics.pixels &&
+            notification.metrics.maxScrollExtent -
+                    notification.metrics.pixels <=
+                100) {
           _load();
         } else if (widget.reverse &&
-            notification.metrics.minScrollExtent < notification.metrics.pixels &&
-            notification.metrics.minScrollExtent + 100 >= notification.metrics.pixels) {
+            notification.metrics.minScrollExtent <
+                notification.metrics.pixels &&
+            notification.metrics.minScrollExtent + 100 >=
+                notification.metrics.pixels) {
           _load();
         }
         return true;

@@ -11,7 +11,8 @@ final class Sharer {
   static void shareApp(String messageWithoutAppLink) {
     SharePlus.instance.share(
       ShareParams(
-        text: '$messageWithoutAppLink ${Platform.isIOS ? Core.get<Config>().appStoreLink : Core.get<Config>().googlePlayLink}', //
+        text:
+            '$messageWithoutAppLink ${Platform.isIOS ? Core.get<Config>().appStoreLink : Core.get<Config>().googlePlayLink}', //
         subject: Core.get<Config>().appName,
       ),
     );

@@ -19,13 +19,21 @@ class RelationsSelector<T extends BaseModel> extends StatefulWidget {
   final void Function(Set<dynamic> selectedIds)? onSelection;
   final void Function(Set<dynamic> selectedIds)? onConfirm;
 
-  const RelationsSelector({super.key, this.title, required this.allItems, this.initialSelectedIds = const {}, this.onSelection, this.onConfirm});
+  const RelationsSelector({
+    super.key,
+    this.title,
+    required this.allItems,
+    this.initialSelectedIds = const {},
+    this.onSelection,
+    this.onConfirm,
+  });
 
   @override
   State<RelationsSelector<T>> createState() => _RelationsSelectorState<T>();
 }
 
-class _RelationsSelectorState<T extends BaseModel> extends State<RelationsSelector<T>> {
+class _RelationsSelectorState<T extends BaseModel>
+    extends State<RelationsSelector<T>> {
   // Lists to hold the state of available and selected items
   late List<T> _availableItems;
   late List<T> _selectedItems;
@@ -35,8 +43,10 @@ class _RelationsSelectorState<T extends BaseModel> extends State<RelationsSelect
   final Set<dynamic> _highlightedSelected = {};
 
   // Controllers for the search fields
-  final TextEditingController _availableSearchController = TextEditingController();
-  final TextEditingController _selectedSearchController = TextEditingController();
+  final TextEditingController _availableSearchController =
+      TextEditingController();
+  final TextEditingController _selectedSearchController =
+      TextEditingController();
 
   String _availableSearchQuery = '';
   String _selectedSearchQuery = '';
@@ -48,10 +58,16 @@ class _RelationsSelectorState<T extends BaseModel> extends State<RelationsSelect
 
     // Add listeners to update the UI on search query changes
     _availableSearchController.addListener(() {
-      setState(() => _availableSearchQuery = _availableSearchController.text.toLowerCase());
+      setState(
+        () => _availableSearchQuery = _availableSearchController.text
+            .toLowerCase(),
+      );
     });
     _selectedSearchController.addListener(() {
-      setState(() => _selectedSearchQuery = _selectedSearchController.text.toLowerCase());
+      setState(
+        () =>
+            _selectedSearchQuery = _selectedSearchController.text.toLowerCase(),
+      );
     });
   }
 
@@ -59,15 +75,20 @@ class _RelationsSelectorState<T extends BaseModel> extends State<RelationsSelect
   void didUpdateWidget(covariant RelationsSelector<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     // If the incoming data changes, re-initialize the lists
-    if (widget.allItems != oldWidget.allItems || widget.initialSelectedIds != oldWidget.initialSelectedIds) {
+    if (widget.allItems != oldWidget.allItems ||
+        widget.initialSelectedIds != oldWidget.initialSelectedIds) {
       _splitAndSortItems();
     }
   }
 
   void _splitAndSortItems() {
     final selectedIds = widget.initialSelectedIds;
-    _availableItems = widget.allItems.where((item) => !selectedIds.contains(item.getId())).toList();
-    _selectedItems = widget.allItems.where((item) => selectedIds.contains(item.getId())).toList();
+    _availableItems = widget.allItems
+        .where((item) => !selectedIds.contains(item.getId()))
+        .toList();
+    _selectedItems = widget.allItems
+        .where((item) => selectedIds.contains(item.getId()))
+        .toList();
 
     _availableItems.sort((a, b) => a.getLabel().compareTo(b.getLabel()));
     _selectedItems.sort((a, b) => a.getLabel().compareTo(b.getLabel()));
@@ -81,12 +102,16 @@ class _RelationsSelectorState<T extends BaseModel> extends State<RelationsSelect
   }
 
   void _notifySelectionChanged() {
-    widget.onSelection?.call(_selectedItems.map((item) => item.getId()).toSet());
+    widget.onSelection?.call(
+      _selectedItems.map((item) => item.getId()).toSet(),
+    );
   }
 
   void _moveItems(List<T> source, List<T> destination, Set<dynamic> idsToMove) {
     setState(() {
-      final itemsToMove = source.where((item) => idsToMove.contains(item.getId())).toList();
+      final itemsToMove = source
+          .where((item) => idsToMove.contains(item.getId()))
+          .toList();
       destination.addAll(itemsToMove);
       source.removeWhere((item) => idsToMove.contains(item.getId()));
 
@@ -114,8 +139,18 @@ class _RelationsSelectorState<T extends BaseModel> extends State<RelationsSelect
 
   @override
   Widget build(BuildContext context) {
-    final filteredAvailable = _availableItems.where((item) => item.getLabel().toLowerCase().contains(_availableSearchQuery)).toList();
-    final filteredSelected = _selectedItems.where((item) => item.getLabel().toLowerCase().contains(_selectedSearchQuery)).toList();
+    final filteredAvailable = _availableItems
+        .where(
+          (item) =>
+              item.getLabel().toLowerCase().contains(_availableSearchQuery),
+        )
+        .toList();
+    final filteredSelected = _selectedItems
+        .where(
+          (item) =>
+              item.getLabel().toLowerCase().contains(_selectedSearchQuery),
+        )
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -126,10 +161,17 @@ class _RelationsSelectorState<T extends BaseModel> extends State<RelationsSelect
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(widget.title ?? '-', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  widget.title ?? '-',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
                 ElevatedButton(
                   onPressed: () {
-                    widget.onConfirm?.call(_selectedItems.map((item) => item.getId()).toSet());
+                    widget.onConfirm?.call(
+                      _selectedItems.map((item) => item.getId()).toSet(),
+                    );
                   },
                   child: Text('save'.i18n()),
                 ),
@@ -148,9 +190,12 @@ class _RelationsSelectorState<T extends BaseModel> extends State<RelationsSelect
                 highlightedIds: _highlightedAvailable,
                 searchController: _availableSearchController,
                 onItemTap: (id) => setState(() {
-                  _highlightedAvailable.contains(id) ? _highlightedAvailable.remove(id) : _highlightedAvailable.add(id);
+                  _highlightedAvailable.contains(id)
+                      ? _highlightedAvailable.remove(id)
+                      : _highlightedAvailable.add(id);
                 }),
-                onLongPress: (item) => _moveItems(_availableItems, _selectedItems, {item.getId()}),
+                onLongPress: (item) =>
+                    _moveItems(_availableItems, _selectedItems, {item.getId()}),
               ),
               _buildCenterControls(),
               // Selected Items Panel (Visually on the left in RTL)
@@ -160,9 +205,12 @@ class _RelationsSelectorState<T extends BaseModel> extends State<RelationsSelect
                 highlightedIds: _highlightedSelected,
                 searchController: _selectedSearchController,
                 onItemTap: (id) => setState(() {
-                  _highlightedSelected.contains(id) ? _highlightedSelected.remove(id) : _highlightedSelected.add(id);
+                  _highlightedSelected.contains(id)
+                      ? _highlightedSelected.remove(id)
+                      : _highlightedSelected.add(id);
                 }),
-                onLongPress: (item) => _moveItems(_selectedItems, _availableItems, {item.getId()}),
+                onLongPress: (item) =>
+                    _moveItems(_selectedItems, _availableItems, {item.getId()}),
               ),
             ],
           ),
@@ -179,25 +227,41 @@ class _RelationsSelectorState<T extends BaseModel> extends State<RelationsSelect
         children: [
           IconButton(
             icon: const Icon(Icons.keyboard_double_arrow_right),
-            onPressed: _availableItems.isNotEmpty ? () => _moveAllItems(_availableItems, _selectedItems) : null,
+            onPressed: _availableItems.isNotEmpty
+                ? () => _moveAllItems(_availableItems, _selectedItems)
+                : null,
             tooltip: 'Move all to selected',
           ),
           const SizedBox(height: 8),
           IconButton(
             icon: const Icon(Icons.keyboard_arrow_right),
-            onPressed: _highlightedAvailable.isNotEmpty ? () => _moveItems(_availableItems, _selectedItems, _highlightedAvailable) : null,
+            onPressed: _highlightedAvailable.isNotEmpty
+                ? () => _moveItems(
+                    _availableItems,
+                    _selectedItems,
+                    _highlightedAvailable,
+                  )
+                : null,
             tooltip: 'Move highlighted to selected',
           ),
           const SizedBox(height: 16),
           IconButton(
             icon: const Icon(Icons.keyboard_arrow_left),
-            onPressed: _highlightedSelected.isNotEmpty ? () => _moveItems(_selectedItems, _availableItems, _highlightedSelected) : null,
+            onPressed: _highlightedSelected.isNotEmpty
+                ? () => _moveItems(
+                    _selectedItems,
+                    _availableItems,
+                    _highlightedSelected,
+                  )
+                : null,
             tooltip: 'Move highlighted to available',
           ),
           const SizedBox(height: 8),
           IconButton(
             icon: const Icon(Icons.keyboard_double_arrow_left),
-            onPressed: _selectedItems.isNotEmpty ? () => _moveAllItems(_selectedItems, _availableItems) : null,
+            onPressed: _selectedItems.isNotEmpty
+                ? () => _moveAllItems(_selectedItems, _availableItems)
+                : null,
             tooltip: 'Move all to available',
           ),
         ],
@@ -245,7 +309,9 @@ class _RelationsSelectorState<T extends BaseModel> extends State<RelationsSelect
                     onTap: () => onItemTap(item.getId()),
                     onLongPress: () => onLongPress(item),
                     selected: isHighlighted,
-                    selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                    selectedTileColor: Theme.of(
+                      context,
+                    ).primaryColor.withOpacity(0.2),
                     dense: true,
                   );
                 },

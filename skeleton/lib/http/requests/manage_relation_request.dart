@@ -17,7 +17,12 @@ class ManageRelationRequest {
   /// Optional additional data for pivot tables.
   final Map<String, dynamic>? additional;
 
-  ManageRelationRequest({required this.name, this.action, required this.ids, this.additional});
+  ManageRelationRequest({
+    required this.name,
+    this.action,
+    required this.ids,
+    this.additional,
+  });
 
   /// This class is only for sending data, so we only need toJson().
   Map<String, dynamic> toJson() => _$ManageRelationRequestToJson(this);

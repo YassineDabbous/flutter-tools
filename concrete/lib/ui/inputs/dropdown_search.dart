@@ -45,16 +45,26 @@ class _DropDownSearchState<K> extends State<DropDownSearch<K>> {
     super.dispose();
   }
 
-  Map<K, String> get suggestions => Map.fromEntries(widget.options.entries)..removeWhere((key, value) => !value.toLowerCase().contains(search.toLowerCase()));
+  Map<K, String> get suggestions => Map.fromEntries(widget.options.entries)
+    ..removeWhere(
+      (key, value) => !value.toLowerCase().contains(search.toLowerCase()),
+    );
 
   @override
   Widget build(BuildContext context) {
-    final x = widget.selectedValues.isNotEmpty ? widget.options.entries.where((e) => widget.selectedValues.contains(e.key)).map((e) => e.value).join(', ') : '';
+    final x = widget.selectedValues.isNotEmpty
+        ? widget.options.entries
+              .where((e) => widget.selectedValues.contains(e.key))
+              .map((e) => e.value)
+              .join(', ')
+        : '';
 
     return widget.builder != null
         ? widget.builder!(x, showSearcher)
         : TextInput(
-            validator: widget.validator == null ? null : (p0) => widget.validator!(widget.selectedValues),
+            validator: widget.validator == null
+                ? null
+                : (p0) => widget.validator!(widget.selectedValues),
             // key: Key('search$x'),
             hint: widget.hint,
             // textStyle: TextStyle(fontSize: 12),
@@ -67,7 +77,8 @@ class _DropDownSearchState<K> extends State<DropDownSearch<K>> {
   }
 
   void showSearcher() {
-    final mxh = ((widget.searchable ? 80 : 16) + widget.options.length * 50).toDouble();
+    final mxh = ((widget.searchable ? 80 : 16) + widget.options.length * 50)
+        .toDouble();
     dialogView(
       maxHeight: mxh > 400 ? 400 : mxh,
       maxWidth: 300,
@@ -95,7 +106,12 @@ class _DropDownSearchState<K> extends State<DropDownSearch<K>> {
                           .map(
                             (key, value) => MapEntry(
                               key,
-                              _SelectRow(isMultiSelect: widget.isMultiSelect, selected: widget.selectedValues.contains(key), text: value, onChange: (isSelected) => onChecked(key)),
+                              _SelectRow(
+                                isMultiSelect: widget.isMultiSelect,
+                                selected: widget.selectedValues.contains(key),
+                                text: value,
+                                onChange: (isSelected) => onChecked(key),
+                              ),
                             ),
                           )
                           .values
@@ -137,7 +153,12 @@ class _SelectRow extends StatefulWidget {
   final bool isMultiSelect;
   final dynamic text;
 
-  const _SelectRow({required this.onChange, required this.selected, required this.isMultiSelect, required this.text});
+  const _SelectRow({
+    required this.onChange,
+    required this.selected,
+    required this.isMultiSelect,
+    required this.text,
+  });
 
   @override
   State<_SelectRow> createState() => _SelectRowState();

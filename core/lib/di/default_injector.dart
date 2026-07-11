@@ -12,19 +12,23 @@ class DefaultInjector implements Injector {
 
   /// Registers a new factory function (non-singleton).
   @override
-  void add<T>(T Function() constructor, {String? key}) => _injector.registerDependency(constructor, dependencyName: key ?? '');
+  void add<T>(T Function() constructor, {String? key}) =>
+      _injector.registerDependency(constructor, dependencyName: key ?? '');
 
   /// Registers an existing instance (non-singleton).
   @override
-  void addInstance<T>(T instance, {String? key}) => add(() => instance, key: key);
+  void addInstance<T>(T instance, {String? key}) =>
+      add(() => instance, key: key);
 
   /// Registers a dependency as a singleton (created immediately).
   @override
-  void addSingleton<T>(T Function() constructor, {String? key}) => _injector.registerSingleton(constructor, dependencyName: key ?? '');
+  void addSingleton<T>(T Function() constructor, {String? key}) =>
+      _injector.registerSingleton(constructor, dependencyName: key ?? '');
 
   /// Registers a dependency as a lazy singleton (created on first access).
   @override
-  void addLazySingleton<T>(T Function() constructor, {String? key}) => _injector.registerSingleton(constructor, dependencyName: key ?? '');
+  void addLazySingleton<T>(T Function() constructor, {String? key}) =>
+      _injector.registerSingleton(constructor, dependencyName: key ?? '');
 
   /// Commits pending registrations (no-op for this implementation).
   @override

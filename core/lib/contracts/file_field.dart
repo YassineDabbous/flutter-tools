@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import '../constants/media_type.dart';
 
 /// Generic representation of a file for upload across different providers.
-/// 
+///
 /// Enhanced with UI properties to maintain compatibility with existing widgets.
 class FileField {
   final String key;
@@ -10,16 +10,16 @@ class FileField {
   final Uint8List? data;
   final String? fileName;
   final String? contentType;
-  
+
   // UI & State properties
   final String? fullUrl;
   final FileType type;
   final bool shouldBeRemoved;
 
   FileField({
-    required this.key, 
-    this.path, 
-    this.data, 
+    required this.key,
+    this.path,
+    this.data,
     this.fileName,
     this.contentType,
     this.fullUrl,

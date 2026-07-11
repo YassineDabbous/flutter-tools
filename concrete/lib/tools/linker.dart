@@ -22,7 +22,9 @@ final class Linker {
 
   static void openWhatsapp(String? phoneNumber) {
     if (phoneNumber != null) {
-      final uri = Uri.tryParse(WhatsAppUnilink(phoneNumber: phoneNumber).toString());
+      final uri = Uri.tryParse(
+        WhatsAppUnilink(phoneNumber: phoneNumber).toString(),
+      );
       if (uri != null) {
         launchUrl(uri);
       }

@@ -48,7 +48,15 @@ mixin CrudState<StateType, Model, ID> on MyBaseState<StateType> {
 //
 //
 
-mixin CrudBloc<ApiType extends BaseApiService<Model, Request, Filter, ID>, BaseState extends CrudState<BaseState, Model, ID>, Model, Request, Filter, ID> on MyBaseBloc<ApiType, BaseState> {
+mixin CrudBloc<
+  ApiType extends BaseApiService<Model, Request, Filter, ID>,
+  BaseState extends CrudState<BaseState, Model, ID>,
+  Model,
+  Request,
+  Filter,
+  ID
+>
+    on MyBaseBloc<ApiType, BaseState> {
   Model? model;
 
   /// Make a http call to get `Model` data.
@@ -72,7 +80,8 @@ mixin CrudBloc<ApiType extends BaseApiService<Model, Request, Filter, ID>, BaseS
 
   /// Same as `one` method but for `Create/Edit` Forms
   @protected
-  Future<Model> oneForEdit({required ID id, Filter? params}) async => await one(id: id, params: params);
+  Future<Model> oneForEdit({required ID id, Filter? params}) async =>
+      await one(id: id, params: params);
 
   /// Same as `show` method but for `Create/Edit` Forms
   void showForEdit({required ID id, Filter? params}) async {

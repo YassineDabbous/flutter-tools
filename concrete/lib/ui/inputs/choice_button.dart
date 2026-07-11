@@ -11,7 +11,13 @@ class ChoiceButtonWidget extends StatefulWidget {
   final int? initial;
   final bool readOnly;
   final Map<int, String> choices;
-  const ChoiceButtonWidget({super.key, required this.choices, required this.onChange, this.initial, this.readOnly = false});
+  const ChoiceButtonWidget({
+    super.key,
+    required this.choices,
+    required this.onChange,
+    this.initial,
+    this.readOnly = false,
+  });
 
   @override
   State<ChoiceButtonWidget> createState() => _ChoiceButtonWidgetState();
@@ -31,7 +37,8 @@ class _ChoiceButtonWidgetState extends State<ChoiceButtonWidget> {
     // }
   }
 
-  final pressedState = WidgetStatesController()..value = <WidgetState>{WidgetState.pressed};
+  final pressedState = WidgetStatesController()
+    ..value = <WidgetState>{WidgetState.pressed};
 
   Widget buildSelectionButton(int key, String value, {bool selected = false}) {
     //bool isNotEdge = key != 0 && key != widget.choices.length - 1;
@@ -39,7 +46,9 @@ class _ChoiceButtonWidgetState extends State<ChoiceButtonWidget> {
       style: ElevatedButton.styleFrom(
         elevation: 1,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        backgroundColor: !selected ? null : context.theme.buttonTheme.colorScheme?.secondary,
+        backgroundColor: !selected
+            ? null
+            : context.theme.buttonTheme.colorScheme?.secondary,
       ),
       statesController: !selected ? null : pressedState,
       onPressed: () {
@@ -58,7 +67,14 @@ class _ChoiceButtonWidgetState extends State<ChoiceButtonWidget> {
         });
         widget.onChange(key);
       },
-      child: Text(value, style: context.textTheme.titleMedium?.copyWith(color: !selected ? null : context.theme.buttonTheme.colorScheme?.onPrimary)),
+      child: Text(
+        value,
+        style: context.textTheme.titleMedium?.copyWith(
+          color: !selected
+              ? null
+              : context.theme.buttonTheme.colorScheme?.onPrimary,
+        ),
+      ),
     );
   }
 
@@ -67,7 +83,15 @@ class _ChoiceButtonWidgetState extends State<ChoiceButtonWidget> {
     return Wrap(
       // mainAxisAlignment: MainAxisAlignment.center,
       alignment: WrapAlignment.center,
-      children: widget.choices.keys.map((key) => buildSelectionButton(key, widget.choices[key]!, selected: _selectedKey == key)).toList(),
+      children: widget.choices.keys
+          .map(
+            (key) => buildSelectionButton(
+              key,
+              widget.choices[key]!,
+              selected: _selectedKey == key,
+            ),
+          )
+          .toList(),
     );
   }
 }

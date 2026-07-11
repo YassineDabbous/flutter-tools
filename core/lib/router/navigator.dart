@@ -42,7 +42,10 @@ class NavRoute {
 class AppNavigator {
   static String? current = '/';
 
-  String get path => ModalRoute.of(Core.navigatorKey.currentState!.context)?.settings.name ?? current ?? '/';
+  String get path =>
+      ModalRoute.of(Core.navigatorKey.currentState!.context)?.settings.name ??
+      current ??
+      '/';
 
   Map<String, String> queryParams() => throw UnimplementedError();
   Map<String, String> pathParams() => throw UnimplementedError();
@@ -55,7 +58,9 @@ class AppNavigator {
 
   void navigate(String path, {dynamic arguments}) {
     current = path;
-    Core.navigatorKey.currentState?.pushReplacementNamed(path); // This action replaces all past routes
+    Core.navigatorKey.currentState?.pushReplacementNamed(
+      path,
+    ); // This action replaces all past routes
   }
 
   //
@@ -64,7 +69,8 @@ class AppNavigator {
   //
   //
 
-  Future<T?>? push<T extends Object?>(String location, {Object? extra}) => throw UnimplementedError();
+  Future<T?>? push<T extends Object?>(String location, {Object? extra}) =>
+      throw UnimplementedError();
 
   Future<T?>? pushRoute<T extends Object?>(Route<T> route) {
     current = null;
@@ -94,9 +100,18 @@ class AppNavigator {
     Core.navigatorKey.currentState?.pop<T?>(result);
   }
 
-  Future<T?>? popAndPushNamed<T extends Object?, TO extends Object?>(String routeName, {TO? result, Object? arguments, bool forRoot = false}) {
+  Future<T?>? popAndPushNamed<T extends Object?, TO extends Object?>(
+    String routeName, {
+    TO? result,
+    Object? arguments,
+    bool forRoot = false,
+  }) {
     current = routeName;
-    return Core.navigatorKey.currentState?.popAndPushNamed<T, TO>(routeName, result: result, arguments: arguments);
+    return Core.navigatorKey.currentState?.popAndPushNamed<T, TO>(
+      routeName,
+      result: result,
+      arguments: arguments,
+    );
   }
 
   void popUntil(bool Function(Route<dynamic>) predicate) {
@@ -110,9 +125,11 @@ class AppNavigator {
   //
   //
 
-  void pushReplacement(String location, {Object? extra}) => throw UnimplementedError();
+  void pushReplacement(String location, {Object? extra}) =>
+      throw UnimplementedError();
 
-  Future<T?>? pushReplacementRoute<T extends Object?>(Route<T> route) => Core.navigatorKey.currentState?.pushReplacement<T, Object?>(route);
+  Future<T?>? pushReplacementRoute<T extends Object?>(Route<T> route) =>
+      Core.navigatorKey.currentState?.pushReplacement<T, Object?>(route);
 
   Future<T?>? pushReplacementNamed<T>(
     String name, {
@@ -121,6 +138,10 @@ class AppNavigator {
     Object? extra,
   }) {
     current = name;
-    return Core.navigatorKey.currentState?.pushReplacementNamed<T, Object?>(name, result: extra, arguments: {...pathParams, ...queryParams});
+    return Core.navigatorKey.currentState?.pushReplacementNamed<T, Object?>(
+      name,
+      result: extra,
+      arguments: {...pathParams, ...queryParams},
+    );
   }
 }

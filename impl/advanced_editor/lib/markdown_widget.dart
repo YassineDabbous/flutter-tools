@@ -5,7 +5,8 @@ class MarkdownWidget extends StatefulWidget {
   final TextStyle? style;
   final String? markdown;
   final TextEditingController? controller;
-  const MarkdownWidget({super.key, this.controller, this.markdown, this.style}) : assert(controller != null || markdown != null);
+  const MarkdownWidget({super.key, this.controller, this.markdown, this.style})
+    : assert(controller != null || markdown != null);
 
   @override
   State<MarkdownWidget> createState() => _MarkdownWidgetState();

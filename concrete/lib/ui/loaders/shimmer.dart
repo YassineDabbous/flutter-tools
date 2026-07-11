@@ -24,10 +24,7 @@ class ShimmerHelper extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      decoration: ShapeDecoration(
-        color: Colors.grey[300]!,
-        shape: shapeBorder,
-      ),
+      decoration: ShapeDecoration(color: Colors.grey[300]!, shape: shapeBorder),
     );
   }
 }

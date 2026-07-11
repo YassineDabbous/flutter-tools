@@ -4,18 +4,18 @@ version: 0.0.1
 publish_to: none
 
 environment:
-  sdk: ^3.11.0
+  sdk: ^3.12.0
   flutter: ">=3.0.0"
+
+resolution: workspace
 
 dependencies:
   flutter:
     sdk: flutter
-  skeleton:
-    path: ../skeleton
-  core:
-    path: ../core
+  skeleton: ^0.0.1
+  core: ^0.0.1
   
-  dio: ^5.9.0
+  dio: ^5.10.0
   pretty_dio_logger: ^1.4.0
 
 dev_dependencies:

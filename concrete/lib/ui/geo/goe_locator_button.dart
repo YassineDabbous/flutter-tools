@@ -6,7 +6,13 @@ class GeoLocatorButton extends StatefulWidget {
   final Widget Function(Coordinates)? builder;
   final Function(Coordinates)? onLoaded;
   final Widget? empty;
-  const GeoLocatorButton({super.key, this.current, this.builder, this.onLoaded, this.empty});
+  const GeoLocatorButton({
+    super.key,
+    this.current,
+    this.builder,
+    this.onLoaded,
+    this.empty,
+  });
 
   @override
   State<GeoLocatorButton> createState() => _GeoLocatorButtonState();
@@ -23,7 +29,12 @@ class _GeoLocatorButtonState extends State<GeoLocatorButton> {
             .getCurrentPosition()
             .then((value) {
               // widget.maker.form.coordinates = Coordinates(latitude: value.latitude, longitude: value.longitude);
-              widget.onLoaded?.call(Coordinates(latitude: value.latitude, longitude: value.longitude));
+              widget.onLoaded?.call(
+                Coordinates(
+                  latitude: value.latitude,
+                  longitude: value.longitude,
+                ),
+              );
               setState(() => isLoading = false);
             })
             .onError((error, stackTrace) {
@@ -42,9 +53,17 @@ ${'please open location settings'.i18n()}
       },
       child: isLoading
           ? const Center(
-              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white)),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
             )
-          : Text((widget.current == null || widget.current!.isEmpty) ? 'locate position'.i18n() : 'position located'.i18n()),
+          : Text(
+              (widget.current == null || widget.current!.isEmpty)
+                  ? 'locate position'.i18n()
+                  : 'position located'.i18n(),
+            ),
     );
   }
 }

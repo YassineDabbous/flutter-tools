@@ -76,7 +76,8 @@ class TextInput extends StatelessWidget {
         validator: validator,
         keyboardType: keyboardType,
         initialValue: controller == null ? initialValue : null,
-        style: textStyle, // TextStyle(color: Theme.of(context).colorScheme.secondary),
+        style:
+            textStyle, // TextStyle(color: Theme.of(context).colorScheme.secondary),
         controller: controller,
         onChanged: onChanged,
         onFieldSubmitted: onSubmitted,

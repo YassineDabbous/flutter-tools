@@ -42,7 +42,13 @@ class Svg extends ImageProvider<SvgImageKey> {
   /// Width and height can also be specified from [Image] constructor.
   /// Default size is 100x100 logical pixels.
   /// Different size can be specified in [Image] parameters
-  const Svg(this.path, {this.size, this.scale, this.color, this.source = SvgSource.asset});
+  const Svg(
+    this.path, {
+    this.size,
+    this.scale,
+    this.color,
+    this.source = SvgSource.asset,
+  });
 
   @override
   Future<SvgImageKey> obtainKey(ImageConfiguration configuration) {
@@ -52,7 +58,14 @@ class Svg extends ImageProvider<SvgImageKey> {
     final double logicHeight = size?.height ?? configuration.size?.width ?? 100;
 
     return SynchronousFuture<SvgImageKey>(
-      SvgImageKey(path: path, scale: scale, color: color, source: source, pixelWidth: (logicWidth * scale).round(), pixelHeight: (logicHeight * scale).round()),
+      SvgImageKey(
+        path: path,
+        scale: scale,
+        color: color,
+        source: source,
+        pixelWidth: (logicWidth * scale).round(),
+        pixelHeight: (logicHeight * scale).round(),
+      ),
     );
   }
 
@@ -74,7 +87,10 @@ class Svg extends ImageProvider<SvgImageKey> {
 
   static Future<ImageInfo> _loadAsync(SvgImageKey key) async {
     final String rawSvg = await _getSvgString(key);
-    final PictureInfo pictureInfo = await vg.loadPicture(SvgStringLoader(rawSvg), null);
+    final PictureInfo pictureInfo = await vg.loadPicture(
+      SvgStringLoader(rawSvg),
+      null,
+    );
     // final DrawableRoot svgRoot = await svg.fromSvgString(rawSvg, key.path);
     // final ui.Picture picture = svgRoot.toPicture(
     //   size: Size(
@@ -87,7 +103,10 @@ class Svg extends ImageProvider<SvgImageKey> {
     //     BlendMode.srcATop,
     //   ),
     // );
-    final ui.Image image = await pictureInfo.picture.toImage(key.pixelWidth, key.pixelHeight);
+    final ui.Image image = await pictureInfo.picture.toImage(
+      key.pixelWidth,
+      key.pixelHeight,
+    );
     pictureInfo.picture.dispose();
 
     return ImageInfo(image: image, scale: key.scale);
@@ -111,7 +130,14 @@ class Svg extends ImageProvider<SvgImageKey> {
 
 @immutable
 class SvgImageKey {
-  const SvgImageKey({required this.path, required this.pixelWidth, required this.pixelHeight, required this.scale, required this.source, this.color});
+  const SvgImageKey({
+    required this.path,
+    required this.pixelWidth,
+    required this.pixelHeight,
+    required this.scale,
+    required this.source,
+    this.color,
+  });
 
   /// Path to svg asset.
   final String path;
@@ -142,7 +168,12 @@ class SvgImageKey {
       return false;
     }
 
-    return other is SvgImageKey && other.path == path && other.pixelWidth == pixelWidth && other.pixelHeight == pixelHeight && other.scale == scale && other.source == source;
+    return other is SvgImageKey &&
+        other.path == path &&
+        other.pixelWidth == pixelWidth &&
+        other.pixelHeight == pixelHeight &&
+        other.scale == scale &&
+        other.source == source;
   }
 
   // @override

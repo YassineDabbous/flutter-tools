@@ -33,7 +33,8 @@ class SuperDataGrid<TModel> extends StatefulWidget {
   final Function(int)? loadPage;
   final Function()? loadNext;
   final Function()? loadPrevious;
-  final void Function(List<int> indexes, List<TModel> selectedItems)? onSelection;
+  final void Function(List<int> indexes, List<TModel> selectedItems)?
+  onSelection;
   final List<int>? initialSelectedIndexes;
   final bool selectionEnabled;
   final int minWidth;
@@ -55,7 +56,7 @@ class SuperDataGrid<TModel> extends StatefulWidget {
     this.pages,
     this.tools = const [],
     this.keyedTools = const [],
-    this.minWidth = 1024
+    this.minWidth = 1024,
   });
 
   @override
@@ -76,28 +77,37 @@ class _SuperDataGridState<TModel> extends State<SuperDataGrid<TModel>> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(children: [if (_selectedIds.isNotEmpty) ...widget.keyedTools, ...widget.tools]),
+        Wrap(
+          children: [
+            if (_selectedIds.isNotEmpty) ...widget.keyedTools,
+            ...widget.tools,
+          ],
+        ),
         if (w < widget.minWidth)
           SizedBox(
             width: w,
             child: DraggableScroll(
-              child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: buildDataTable()),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: buildDataTable(),
+              ),
             ),
           )
         else
-          Row(
-            children: [
-              Expanded(child: buildDataTable()),
-            ],
-          ),
+          Row(children: [Expanded(child: buildDataTable())]),
         const SizedBox(height: Sz.xl),
         if (widget.pages != null && widget.loadPage != null)
           Row(
             children: [
               if (widget.total != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
-                  child: SizedBox(child: Text('${"total".i18n()}: ${widget.total}')),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 2,
+                    horizontal: 8,
+                  ),
+                  child: SizedBox(
+                    child: Text('${"total".i18n()}: ${widget.total}'),
+                  ),
                 ),
               Expanded(
                 child: Wrap(
@@ -105,22 +115,49 @@ class _SuperDataGridState<TModel> extends State<SuperDataGrid<TModel>> {
                   // mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // const Spacer(),
-                    TextButton(onPressed: widget.loadPrevious, child: const Icon(Icons.chevron_left)),
-                    ...widget.pages!.map((e) => TextButton(onPressed: (widget.page == e) ? null : () => widget.loadPage?.call(e), child: Text('$e'))),
-                    TextButton(onPressed: widget.loadNext, child: const Icon(Icons.chevron_right)),
+                    TextButton(
+                      onPressed: widget.loadPrevious,
+                      child: const Icon(Icons.chevron_left),
+                    ),
+                    ...widget.pages!.map(
+                      (e) => TextButton(
+                        onPressed: (widget.page == e)
+                            ? null
+                            : () => widget.loadPage?.call(e),
+                        child: Text('$e'),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: widget.loadNext,
+                      child: const Icon(Icons.chevron_right),
+                    ),
                   ],
                 ),
               ),
               if (widget.loadPerPage != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 2,
+                    horizontal: 8,
+                  ),
                   child: SizedBox(
                     width: 60,
                     child: DropdownButton<int>(
                       key: const Key('perPage'),
                       isExpanded: true,
-                      value: widget.perPage == null || !_perPageList.contains(widget.perPage) ? _perPageList.first : widget.perPage,
-                      items: _perPageList.map((e) => DropdownMenuItem<int>(value: e, child: Text('$e'))).toList(),
+                      value:
+                          widget.perPage == null ||
+                              !_perPageList.contains(widget.perPage)
+                          ? _perPageList.first
+                          : widget.perPage,
+                      items: _perPageList
+                          .map(
+                            (e) => DropdownMenuItem<int>(
+                              value: e,
+                              child: Text('$e'),
+                            ),
+                          )
+                          .toList(),
                       onChanged: widget.loadPerPage,
                     ),
                   ),
@@ -134,7 +171,14 @@ class _SuperDataGridState<TModel> extends State<SuperDataGrid<TModel>> {
   Widget buildDataTable() {
     return DataTable(
       showCheckboxColumn: widget.selectionEnabled,
-      columns: widget.columns.map<DataColumn>((e) => DataColumn(label: Flexible(child: Text(e.toUpperCase(), softWrap: true,)), numeric: e.toLowerCase() == 'id')).toList(),
+      columns: widget.columns
+          .map<DataColumn>(
+            (e) => DataColumn(
+              label: Flexible(child: Text(e.toUpperCase(), softWrap: true)),
+              numeric: e.toLowerCase() == 'id',
+            ),
+          )
+          .toList(),
       rows: List<DataRow>.generate(
         widget.items.length,
         (rowIndex) => DataRow(
@@ -142,8 +186,15 @@ class _SuperDataGridState<TModel> extends State<SuperDataGrid<TModel>> {
           onSelectChanged: !widget.selectionEnabled
               ? null
               : (b) => setState(() {
-                  (b != null && b) ? _selectedIds.add(rowIndex) : _selectedIds.remove(rowIndex);
-                  widget.onSelection?.call(_selectedIds, _selectedIds.map<TModel>((e) => widget.items.elementAt(e)).toList());
+                  (b != null && b)
+                      ? _selectedIds.add(rowIndex)
+                      : _selectedIds.remove(rowIndex);
+                  widget.onSelection?.call(
+                    _selectedIds,
+                    _selectedIds
+                        .map<TModel>((e) => widget.items.elementAt(e))
+                        .toList(),
+                  );
                 }),
           cells: widget.cellsBuilder(rowIndex),
         ),

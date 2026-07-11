@@ -12,7 +12,10 @@ class GoRouterNav implements AppNavigator {
       name: route.name,
       // Convert GoRouterState to your custom NavState
       builder: (context, state) {
-        final navState = NavState(pathParams: state.pathParameters, queryParams: state.uri.queryParameters);
+        final navState = NavState(
+          pathParams: state.pathParameters,
+          queryParams: state.uri.queryParameters,
+        );
         return route.builder(context, navState);
       },
       // Recursively build sub-routes
@@ -24,7 +27,6 @@ class GoRouterNav implements AppNavigator {
     //   builder: (context, state) => route.builder(context, NavState(pathParams: state.pathParameters, queryParams: state.uri.queryParameters)),
     // );
   }
- 
 
   @override
   String get path => router.state.uri.toString();
@@ -53,7 +55,8 @@ class GoRouterNav implements AppNavigator {
   //
 
   @override
-  Future<T?>? push<T extends Object?>(String location, {Object? extra}) => Core.ctx?.push<T>(location, extra: extra);
+  Future<T?>? push<T extends Object?>(String location, {Object? extra}) =>
+      Core.ctx?.push<T>(location, extra: extra);
 
   @override
   Future<T?>? pushRoute<T extends Object?>(Route<T> route) {
@@ -67,7 +70,12 @@ class GoRouterNav implements AppNavigator {
     Map<String, dynamic> queryParams = const <String, dynamic>{},
     Object? extra,
   }) {
-    return Core.ctx?.pushNamed<T>(name, pathParameters: pathParams, queryParameters: queryParams, extra: extra);
+    return Core.ctx?.pushNamed<T>(
+      name,
+      pathParameters: pathParams,
+      queryParameters: queryParams,
+      extra: extra,
+    );
   }
 
   //
@@ -83,12 +91,21 @@ class GoRouterNav implements AppNavigator {
   void pop<T extends Object?>([T? result]) => Core.ctx?.pop<T?>(result);
 
   @override
-  void popUntil(bool Function(Route<dynamic>) predicate) => Core.navigatorKey.currentState?.popUntil(predicate);
+  void popUntil(bool Function(Route<dynamic>) predicate) =>
+      Core.navigatorKey.currentState?.popUntil(predicate);
 
   @override
-  Future<T?>? popAndPushNamed<T extends Object?, TO extends Object?>(String routeName, {TO? result, Object? arguments, bool forRoot = false}) {
+  Future<T?>? popAndPushNamed<T extends Object?, TO extends Object?>(
+    String routeName, {
+    TO? result,
+    Object? arguments,
+    bool forRoot = false,
+  }) {
     Core.ctx?.pop<TO?>(result);
-    return Core.ctx?.pushNamed<T>(routeName, pathParameters: arguments as Map<String, String>);
+    return Core.ctx?.pushNamed<T>(
+      routeName,
+      pathParameters: arguments as Map<String, String>,
+    );
   }
 
   //
@@ -98,10 +115,12 @@ class GoRouterNav implements AppNavigator {
   //
 
   @override
-  void pushReplacement(String location, {Object? extra}) => Core.ctx?.pushReplacement(location, extra: extra);
+  void pushReplacement(String location, {Object? extra}) =>
+      Core.ctx?.pushReplacement(location, extra: extra);
 
   @override
-  Future<T?>? pushReplacementRoute<T extends Object?>(Route<T> route) => Core.navigatorKey.currentState?.pushReplacement<T, Object?>(route);
+  Future<T?>? pushReplacementRoute<T extends Object?>(Route<T> route) =>
+      Core.navigatorKey.currentState?.pushReplacement<T, Object?>(route);
 
   @override
   Future<T?>? pushReplacementNamed<T>(
@@ -110,7 +129,12 @@ class GoRouterNav implements AppNavigator {
     Map<String, dynamic> queryParams = const <String, dynamic>{},
     Object? extra,
   }) {
-    Core.ctx?.pushReplacementNamed(name, pathParameters: pathParams, queryParameters: queryParams, extra: extra);
+    Core.ctx?.pushReplacementNamed(
+      name,
+      pathParameters: pathParams,
+      queryParameters: queryParams,
+      extra: extra,
+    );
     return null;
   }
 }

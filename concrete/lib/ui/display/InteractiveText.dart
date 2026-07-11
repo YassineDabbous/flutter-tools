@@ -64,7 +64,8 @@ class InteractiveText extends StatelessWidget {
         ),
         MatchText(
           type: ParsedType.CUSTOM,
-          pattern: "(---( )?(`)?spoiler(`)?( )?---)\n\n(.*?)\n( )?(---( )?(`)?spoiler(`)?( )?---)",
+          pattern:
+              "(---( )?(`)?spoiler(`)?( )?---)\n\n(.*?)\n( )?(---( )?(`)?spoiler(`)?( )?---)",
           style: const TextStyle(color: Colors.purple, fontSize: 50),
           onTap: (url) {
             launchUrlString("tel:$url");

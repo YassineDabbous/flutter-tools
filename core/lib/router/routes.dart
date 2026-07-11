@@ -21,13 +21,15 @@ abstract class R {
   String settingsThemes() => settingsRootRoute + themesRoute;
 
   final String settingsNotificationsRoute = '/notifications';
-  String settingsNotifications() => settingsRootRoute + settingsNotificationsRoute;
+  String settingsNotifications() =>
+      settingsRootRoute + settingsNotificationsRoute;
 
   final String settingsLanguagesRoute = '/languages';
   String settingsLanguages() => settingsRootRoute + settingsLanguagesRoute;
 
   final String settingsServerConfigRoute = '/server';
-  String settingsServerConfig() => settingsRootRoute + settingsServerConfigRoute;
+  String settingsServerConfig() =>
+      settingsRootRoute + settingsServerConfigRoute;
 
   // ##########################################################################
   // ############################# AUTHENTICATION ROUTES ########################
@@ -53,7 +55,8 @@ abstract class R {
   // --- Redirection and Guards ---
 
   /// The default path to navigate to after a successful login.
-  String get redirectAfterLogin => '$homeRoute?r=${DateTime.now().millisecondsSinceEpoch}';
+  String get redirectAfterLogin =>
+      '$homeRoute?r=${DateTime.now().millisecondsSinceEpoch}';
 
   /// The default path to redirect to after a soft logout.
   String get redirectAfterLogout => login();
@@ -71,8 +74,10 @@ abstract class R {
   ];
 
   /// Checks if a [path] is an exact match for a guest route.
-  bool isGuestPath(String path) => guest.where((element) => path == element).isNotEmpty;
+  bool isGuestPath(String path) =>
+      guest.where((element) => path == element).isNotEmpty;
 
   /// Checks if a [path] starts with the prefix of any guest route.
-  bool guestContains(String path) => guest.where((element) => path.startsWith(element)).isNotEmpty;
+  bool guestContains(String path) =>
+      guest.where((element) => path.startsWith(element)).isNotEmpty;
 }

@@ -23,10 +23,7 @@ class ErrorState extends StatelessWidget {
           children: [
             Icon(icon, size: 80, color: Colors.red[300]),
             const SizedBox(height: 24),
-            Text(
-              'Oops!',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
+            Text('Oops!', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
             Text(
               message,

@@ -13,17 +13,22 @@ class OfflineQueueInterceptor extends Interceptor {
   final ListQueue<RequestOptions> _pendingRequests = ListQueue();
 
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  void onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     final hasConnection = await Core.get<NetworkInfo>().isConnected;
 
     if (hasConnection) {
       handler.next(options);
     } else if (_isMutating(options.method)) {
       _pendingRequests.add(options);
-      handler.reject(DioException(
-        requestOptions: options,
-        error: OfflineQueuedException(queueSize: _pendingRequests.length),
-      ));
+      handler.reject(
+        DioException(
+          requestOptions: options,
+          error: OfflineQueuedException(queueSize: _pendingRequests.length),
+        ),
+      );
     } else {
       handler.next(options);
     }
@@ -35,7 +40,7 @@ class OfflineQueueInterceptor extends Interceptor {
 
   Future<void> flush(Dio dio) async {
     if (_pendingRequests.isEmpty) return;
-    
+
     while (_pendingRequests.isNotEmpty) {
       final req = _pendingRequests.removeFirst();
       try {

@@ -20,7 +20,8 @@ class AuthFailure extends AppFailure {
 
 class ValidationFailure extends AppFailure {
   final Map<String, dynamic> errors;
-  const ValidationFailure({this.errors = const {}, String? message}) : super(message ?? 'Validation failed.');
+  const ValidationFailure({this.errors = const {}, String? message})
+    : super(message ?? 'Validation failed.');
 
   @override
   List<Object?> get props => [super.props, errors];

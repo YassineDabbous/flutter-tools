@@ -5,16 +5,17 @@ homepage:
 publish_to: none
 
 environment:
-  sdk: ^3.11.0
+  sdk: ^3.12.0
+
+resolution: workspace
 
 dependencies:
   flutter:
     sdk: flutter
     
-  core:
-    path: ../../core
+  core: ^0.0.1
 
-  flutter_modular: ^6.3.4
+  flutter_modular: ^7.1.0
 
 dev_dependencies:
   flutter_test:

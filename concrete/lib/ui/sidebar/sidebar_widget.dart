@@ -18,7 +18,10 @@ class _SideBarState extends State<SideBar> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(Durations.short1, () => _scrollController.jumpTo(index: current, alignment: 0));
+    Future.delayed(
+      Durations.short1,
+      () => _scrollController.jumpTo(index: current, alignment: 0),
+    );
   }
 
   @override

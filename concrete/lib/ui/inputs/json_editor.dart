@@ -14,39 +14,67 @@ abstract class JsonSchemaNode {
 // Helper class for schema nodes with a default value
 class JsonSchemaNodeWithDefault<T> extends JsonSchemaNode {
   final T defaultValue;
-  JsonSchemaNodeWithDefault({required super.key, required super.label, required this.defaultValue});
+  JsonSchemaNodeWithDefault({
+    required super.key,
+    required super.label,
+    required this.defaultValue,
+  });
 }
 
 // Schema for a simple String value
 class StringSchemaNode extends JsonSchemaNodeWithDefault<String> {
-  StringSchemaNode({required super.key, required super.label, super.defaultValue = ''});
+  StringSchemaNode({
+    required super.key,
+    required super.label,
+    super.defaultValue = '',
+  });
 }
 
 // Schema for an Integer value
 class IntSchemaNode extends JsonSchemaNodeWithDefault<int> {
-  IntSchemaNode({required super.key, required super.label, super.defaultValue = 0});
+  IntSchemaNode({
+    required super.key,
+    required super.label,
+    super.defaultValue = 0,
+  });
 }
 
 // Schema for a Double value
 class DoubleSchemaNode extends JsonSchemaNodeWithDefault<double> {
-  DoubleSchemaNode({required super.key, required super.label, super.defaultValue = 0.0});
+  DoubleSchemaNode({
+    required super.key,
+    required super.label,
+    super.defaultValue = 0.0,
+  });
 }
 
 // Schema for a Boolean value
 class BoolSchemaNode extends JsonSchemaNodeWithDefault<bool> {
-  BoolSchemaNode({required super.key, required super.label, super.defaultValue = false});
+  BoolSchemaNode({
+    required super.key,
+    required super.label,
+    super.defaultValue = false,
+  });
 }
 
 // Schema for a nested JSON Object (Map)
 class ObjectSchemaNode extends JsonSchemaNode {
   final List<JsonSchemaNode> children;
-  ObjectSchemaNode({required super.key, required super.label, required this.children});
+  ObjectSchemaNode({
+    required super.key,
+    required super.label,
+    required this.children,
+  });
 }
 
 // Schema for a JSON Array (List) of objects
 class ListSchemaNode extends JsonSchemaNode {
   final List<JsonSchemaNode> childObjectSchema;
-  ListSchemaNode({required super.key, required super.label, required this.childObjectSchema});
+  ListSchemaNode({
+    required super.key,
+    required super.label,
+    required this.childObjectSchema,
+  });
 }
 
 // --- NEW SCHEMA NODE and HELPER CLASS ---
@@ -64,19 +92,23 @@ class ChoiceOption<T> {
 class MultiSelectSchemaNode<T> extends JsonSchemaNodeWithDefault<List<T>> {
   final List<ChoiceOption<T>> options;
 
-  MultiSelectSchemaNode({required super.key, required super.label, required this.options, super.defaultValue = const []});
+  MultiSelectSchemaNode({
+    required super.key,
+    required super.label,
+    required this.options,
+    super.defaultValue = const [],
+  });
 }
-
-
 
 /// A typedef for the function that builds a custom field widget.
 /// It receives the current value and a callback to notify the editor of changes.
-typedef CustomFieldBuilder = Widget Function(
-  BuildContext context,
-  dynamic currentValue,
-  void Function(dynamic newValue) onChanged,
-  bool isReadOnly,
-);
+typedef CustomFieldBuilder =
+    Widget Function(
+      BuildContext context,
+      dynamic currentValue,
+      void Function(dynamic newValue) onChanged,
+      bool isReadOnly,
+    );
 
 /// A schema node that allows rendering a completely custom widget.
 class CustomSchemaNode<T> extends JsonSchemaNodeWithDefault<T> {
@@ -98,7 +130,13 @@ class JsonEditor extends StatefulWidget {
   final bool isReadOnly;
   final void Function(Map<String, dynamic> json) onChanged;
 
-  const JsonEditor({super.key, required this.schema, required this.initial, required this.onChanged, this.isReadOnly = false});
+  const JsonEditor({
+    super.key,
+    required this.schema,
+    required this.initial,
+    required this.onChanged,
+    this.isReadOnly = false,
+  });
 
   @override
   State<JsonEditor> createState() => _JsonEditorState();
@@ -117,7 +155,8 @@ class _JsonEditorState extends State<JsonEditor> {
   @override
   void didUpdateWidget(covariant JsonEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initial != oldWidget.initial || widget.schema != oldWidget.schema) {
+    if (widget.initial != oldWidget.initial ||
+        widget.schema != oldWidget.schema) {
       _disposeControllers();
       _initializeState();
     }
@@ -129,24 +168,39 @@ class _JsonEditorState extends State<JsonEditor> {
     _createControllers(widget.schema, _editableJson);
   }
 
-  void _populateMissingWithDefaults(List<JsonSchemaNode> schema, Map<String, dynamic> jsonMap) {
+  void _populateMissingWithDefaults(
+    List<JsonSchemaNode> schema,
+    Map<String, dynamic> jsonMap,
+  ) {
     for (final node in schema) {
       if (!jsonMap.containsKey(node.key)) {
-        if (node is JsonSchemaNodeWithDefault) jsonMap[node.key] = node.defaultValue;
+        if (node is JsonSchemaNodeWithDefault)
+          jsonMap[node.key] = node.defaultValue;
         if (node is ObjectSchemaNode) {
           jsonMap[node.key] = <String, dynamic>{};
-          _populateMissingWithDefaults(node.children, jsonMap[node.key] as Map<String, dynamic>);
+          _populateMissingWithDefaults(
+            node.children,
+            jsonMap[node.key] as Map<String, dynamic>,
+          );
         }
         if (node is ListSchemaNode) jsonMap[node.key] = [];
       } else if (node is ObjectSchemaNode && jsonMap[node.key] is Map) {
-        _populateMissingWithDefaults(node.children, (jsonMap[node.key] as Map).cast<String, dynamic>());
+        _populateMissingWithDefaults(
+          node.children,
+          (jsonMap[node.key] as Map).cast<String, dynamic>(),
+        );
       }
     }
   }
 
-  void _createControllers(List<JsonSchemaNode> schema, Map<String, dynamic> jsonMap) {
+  void _createControllers(
+    List<JsonSchemaNode> schema,
+    Map<String, dynamic> jsonMap,
+  ) {
     for (final node in schema) {
-      if (node is StringSchemaNode || node is IntSchemaNode || node is DoubleSchemaNode) {
+      if (node is StringSchemaNode ||
+          node is IntSchemaNode ||
+          node is DoubleSchemaNode) {
         final value = jsonMap[node.key];
         _controllers[node.key] = TextEditingController(text: value.toString());
       }
@@ -189,7 +243,10 @@ class _JsonEditorState extends State<JsonEditor> {
 
   Widget _buildEditorForRow(JsonSchemaNode schemaNode, dynamic value) {
     final key = schemaNode.key;
-    final title = Text(schemaNode.label, style: const TextStyle(fontWeight: FontWeight.bold));
+    final title = Text(
+      schemaNode.label,
+      style: const TextStyle(fontWeight: FontWeight.bold),
+    );
 
     if (schemaNode is BoolSchemaNode) {
       return ListTile(
@@ -215,7 +272,9 @@ class _JsonEditorState extends State<JsonEditor> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(border: InputBorder.none),
           onChanged: (newValue) {
-            num? parsedValue = (schemaNode is IntSchemaNode) ? int.tryParse(newValue) : double.tryParse(newValue);
+            num? parsedValue = (schemaNode is IntSchemaNode)
+                ? int.tryParse(newValue)
+                : double.tryParse(newValue);
             if (parsedValue != null) {
               _editableJson[key] = parsedValue;
               _notifyParent();
@@ -240,20 +299,23 @@ class _JsonEditorState extends State<JsonEditor> {
       return ListTile(
         title: title,
         subtitle: const Text('{...}'),
-        trailing: widget.isReadOnly ? null : const Icon(Icons.arrow_forward_ios),
+        trailing: widget.isReadOnly
+            ? null
+            : const Icon(Icons.arrow_forward_ios),
         onTap: widget.isReadOnly
             ? null
             : () async {
-                final result = await Navigator.of(context).push<Map<String, dynamic>>(
-                  MaterialPageRoute(
-                    builder: (_) => _JsonNestedObjectEditorPage(
-                      title: schemaNode.label,
-                      schema: schemaNode.children,
-                      isReadOnly: widget.isReadOnly,
-                      initial: (value as Map).cast<String, dynamic>(),
-                    ),
-                  ),
-                );
+                final result = await Navigator.of(context)
+                    .push<Map<String, dynamic>>(
+                      MaterialPageRoute(
+                        builder: (_) => _JsonNestedObjectEditorPage(
+                          title: schemaNode.label,
+                          schema: schemaNode.children,
+                          isReadOnly: widget.isReadOnly,
+                          initial: (value as Map).cast<String, dynamic>(),
+                        ),
+                      ),
+                    );
                 if (result != null) {
                   setState(() {
                     _editableJson[key] = result;
@@ -266,7 +328,9 @@ class _JsonEditorState extends State<JsonEditor> {
       return ListTile(
         title: title,
         subtitle: Text('[${(value as List).length} items]'),
-        trailing: widget.isReadOnly ? null : const Icon(Icons.arrow_forward_ios),
+        trailing: widget.isReadOnly
+            ? null
+            : const Icon(Icons.arrow_forward_ios),
         onTap: widget.isReadOnly
             ? null
             : () async {
@@ -291,8 +355,12 @@ class _JsonEditorState extends State<JsonEditor> {
     } else if (schemaNode is MultiSelectSchemaNode) {
       final selectedValues = List.from(value);
       // Create a readable summary of selected items
-      final optionsMap = {for (var opt in schemaNode.options) opt.value: opt.label};
-      final summary = selectedValues.map((v) => optionsMap[v] ?? 'Unknown').join(', ');
+      final optionsMap = {
+        for (var opt in schemaNode.options) opt.value: opt.label,
+      };
+      final summary = selectedValues
+          .map((v) => optionsMap[v] ?? 'Unknown')
+          .join(', ');
       // final summary = selectedValues
       //     .map(
       //       (v) => schemaNode.options
@@ -306,14 +374,24 @@ class _JsonEditorState extends State<JsonEditor> {
 
       return ListTile(
         title: title,
-        subtitle: Text(summary.isEmpty ? 'None selected' : summary, maxLines: 2, overflow: TextOverflow.ellipsis),
-        trailing: widget.isReadOnly ? null : const Icon(Icons.arrow_forward_ios),
+        subtitle: Text(
+          summary.isEmpty ? 'None selected' : summary,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: widget.isReadOnly
+            ? null
+            : const Icon(Icons.arrow_forward_ios),
         onTap: widget.isReadOnly
             ? null
             : () async {
                 final result = await Navigator.of(context).push<List<dynamic>>(
                   MaterialPageRoute(
-                    builder: (_) => _MultiSelectPage(title: schemaNode.label, options: schemaNode.options, initialSelection: selectedValues.toSet()),
+                    builder: (_) => _MultiSelectPage(
+                      title: schemaNode.label,
+                      options: schemaNode.options,
+                      initialSelection: selectedValues.toSet(),
+                    ),
                   ),
                 );
                 if (result != null) {
@@ -324,19 +402,13 @@ class _JsonEditorState extends State<JsonEditor> {
                 }
               },
       );
-    }
-    else if (schemaNode is CustomSchemaNode) {
-      return schemaNode.builder(
-        context,
-        value,
-        (newValue) {
-          setState(() {
-            _editableJson[key] = newValue;
-          });
-          _notifyParent();
-        },
-        widget.isReadOnly,
-      );
+    } else if (schemaNode is CustomSchemaNode) {
+      return schemaNode.builder(context, value, (newValue) {
+        setState(() {
+          _editableJson[key] = newValue;
+        });
+        _notifyParent();
+      }, widget.isReadOnly);
     }
     return ListTile(title: title, subtitle: Text(value?.toString() ?? 'null'));
   }
@@ -364,13 +436,20 @@ class _JsonNestedObjectEditorPage extends StatefulWidget {
   final Map<String, dynamic> initial;
   final bool isReadOnly;
 
-  const _JsonNestedObjectEditorPage({required this.title, required this.schema, required this.initial, this.isReadOnly = false});
+  const _JsonNestedObjectEditorPage({
+    required this.title,
+    required this.schema,
+    required this.initial,
+    this.isReadOnly = false,
+  });
 
   @override
-  State<_JsonNestedObjectEditorPage> createState() => __JsonNestedObjectEditorPageState();
+  State<_JsonNestedObjectEditorPage> createState() =>
+      __JsonNestedObjectEditorPageState();
 }
 
-class __JsonNestedObjectEditorPageState extends State<_JsonNestedObjectEditorPage> {
+class __JsonNestedObjectEditorPageState
+    extends State<_JsonNestedObjectEditorPage> {
   late Map<String, dynamic> _editedJson;
 
   @override
@@ -388,7 +467,13 @@ class __JsonNestedObjectEditorPageState extends State<_JsonNestedObjectEditorPag
         Navigator.of(context).pop(_editedJson);
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(widget.isReadOnly ? 'Viewing "${widget.title}"' : 'Editing "${widget.title}"')),
+        appBar: AppBar(
+          title: Text(
+            widget.isReadOnly
+                ? 'Viewing "${widget.title}"'
+                : 'Editing "${widget.title}"',
+          ),
+        ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: JsonEditor(
@@ -412,7 +497,12 @@ class _JsonListEditorPage extends StatefulWidget {
   final List<dynamic> initialList;
   final bool isReadOnly;
 
-  const _JsonListEditorPage({required this.title, required this.objectSchema, required this.initialList, this.isReadOnly = false});
+  const _JsonListEditorPage({
+    required this.title,
+    required this.objectSchema,
+    required this.initialList,
+    this.isReadOnly = false,
+  });
 
   @override
   State<_JsonListEditorPage> createState() => _JsonListEditorPageState();
@@ -448,7 +538,13 @@ class _JsonListEditorPageState extends State<_JsonListEditorPage> {
         Navigator.of(context).pop(_editedList);
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(widget.isReadOnly ? 'Viewing List "${widget.title}"' : 'Editing List "${widget.title}"')),
+        appBar: AppBar(
+          title: Text(
+            widget.isReadOnly
+                ? 'Viewing List "${widget.title}"'
+                : 'Editing List "${widget.title}"',
+          ),
+        ),
         body: ListView.builder(
           itemCount: _editedList.length,
           itemBuilder: (context, index) {
@@ -464,16 +560,17 @@ class _JsonListEditorPageState extends State<_JsonListEditorPage> {
                     ),
               onTap: // widget.isReadOnly ? null :
               () async {
-                final result = await Navigator.of(context).push<Map<String, dynamic>>(
-                  MaterialPageRoute(
-                    builder: (_) => _JsonNestedObjectEditorPage(
-                      isReadOnly: widget.isReadOnly,
-                      title: 'Item ${index + 1}',
-                      schema: widget.objectSchema,
-                      initial: (item as Map).cast<String, dynamic>(),
-                    ),
-                  ),
-                );
+                final result = await Navigator.of(context)
+                    .push<Map<String, dynamic>>(
+                      MaterialPageRoute(
+                        builder: (_) => _JsonNestedObjectEditorPage(
+                          isReadOnly: widget.isReadOnly,
+                          title: 'Item ${index + 1}',
+                          schema: widget.objectSchema,
+                          initial: (item as Map).cast<String, dynamic>(),
+                        ),
+                      ),
+                    );
                 if (result != null) {
                   setState(() {
                     _editedList[index] = result;
@@ -483,7 +580,12 @@ class _JsonListEditorPageState extends State<_JsonListEditorPage> {
             );
           },
         ),
-        floatingActionButton: widget.isReadOnly ? null : FloatingActionButton(onPressed: _addNewItem, child: const Icon(Icons.add)),
+        floatingActionButton: widget.isReadOnly
+            ? null
+            : FloatingActionButton(
+                onPressed: _addNewItem,
+                child: const Icon(Icons.add),
+              ),
       ),
     );
   }
@@ -495,7 +597,11 @@ class _MultiSelectPage extends StatefulWidget {
   final List<ChoiceOption> options;
   final Set<dynamic> initialSelection;
 
-  const _MultiSelectPage({required this.title, required this.options, required this.initialSelection});
+  const _MultiSelectPage({
+    required this.title,
+    required this.options,
+    required this.initialSelection,
+  });
 
   @override
   State<_MultiSelectPage> createState() => _MultiSelectPageState();
@@ -546,8 +652,6 @@ class _MultiSelectPageState extends State<_MultiSelectPage> {
   }
 }
 
-
-
 class AsyncChoicesField extends StatefulWidget {
   final dynamic currentValue;
   final void Function(dynamic) onChanged;
@@ -590,33 +694,46 @@ class _AsyncChoicesFieldState extends State<AsyncChoicesField> {
         if (snapshot.hasError) {
           return ListTile(
             title: const Text('Categories'),
-            subtitle: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
+            subtitle: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
           );
         }
 
         final options = snapshot.data ?? [];
         final selectedValues = List<String>.from(widget.currentValue ?? []);
         final optionsMap = {for (var opt in options) opt.value: opt.label};
-        final summary = selectedValues.map((v) => optionsMap[v] ?? v).join(', ');
+        final summary = selectedValues
+            .map((v) => optionsMap[v] ?? v)
+            .join(', ');
 
         return ListTile(
           title: const Text('Categories (from API)'),
-          subtitle: Text(summary.isEmpty ? 'None selected' : summary, maxLines: 2),
-          trailing: widget.isReadOnly ? null : const Icon(Icons.arrow_forward_ios),
-          onTap: widget.isReadOnly ? null : () async {
-            final result = await Navigator.of(context).push<List<dynamic>>(
-              MaterialPageRoute(
-                builder: (_) => _MultiSelectPage(
-                  title: 'Categories',
-                  options: options,
-                  initialSelection: selectedValues.toSet(),
-                ),
-              ),
-            );
-            if (result != null) {
-              widget.onChanged(result);
-            }
-          },
+          subtitle: Text(
+            summary.isEmpty ? 'None selected' : summary,
+            maxLines: 2,
+          ),
+          trailing: widget.isReadOnly
+              ? null
+              : const Icon(Icons.arrow_forward_ios),
+          onTap: widget.isReadOnly
+              ? null
+              : () async {
+                  final result = await Navigator.of(context)
+                      .push<List<dynamic>>(
+                        MaterialPageRoute(
+                          builder: (_) => _MultiSelectPage(
+                            title: 'Categories',
+                            options: options,
+                            initialSelection: selectedValues.toSet(),
+                          ),
+                        ),
+                      );
+                  if (result != null) {
+                    widget.onChanged(result);
+                  }
+                },
         );
       },
     );
@@ -661,7 +778,7 @@ class ApiService {
 //       const ChoiceOption(label: 'Sunday', value: 7),
 //     ],
 //   ),
-  
+
 //   CustomSchemaNode<List<String>>(
 //     key: 'categories',
 //     label: 'Categories (from API)', // This label is a fallback
@@ -675,7 +792,6 @@ class ApiService {
 //       );
 //     },
 //   ),
-
 
 //   ObjectSchemaNode(
 //     key: 'address',

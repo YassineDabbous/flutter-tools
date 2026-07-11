@@ -11,10 +11,14 @@ abstract class Config {
   // --- Localization Settings ---
   String get defaultLocalization => 'en';
   List<String> get localDirectories => const ['assets/lang/i18n'];
-  List<CustomLang> get supportedLocales => const <CustomLang>[CustomLang('English', Locale('en', 'US'))];
+  List<CustomLang> get supportedLocales => const <CustomLang>[
+    CustomLang('English', Locale('en', 'US')),
+  ];
 
   // --- Theme Settings ---
-  List<CustomTheme> get themes => <CustomTheme>[CustomTheme('Default skin', ThemeData())];
+  List<CustomTheme> get themes => <CustomTheme>[
+    CustomTheme('Default skin', ThemeData()),
+  ];
 
   // --- API & App Identity ---
   String get baseUrl => 'https://www.yaseen.dev/api/v1';
@@ -28,10 +32,13 @@ abstract class Config {
   String get kLinkAboutUs => 'http://www.yaseen.dev/';
   String get googlePlayIdentifier => 'googlePlayIdentifier  HERE';
   String get appStoreIdentifier => 'appStoreIdentifier 0123456789';
-  String get googlePlayLink => 'https://play.google.com/store/apps/details?id=$googlePlayIdentifier';
-  String get appStoreLink => 'https://apps.apple.com/us/app/facebook/id$appStoreIdentifier';
+  String get googlePlayLink =>
+      'https://play.google.com/store/apps/details?id=$googlePlayIdentifier';
+  String get appStoreLink =>
+      'https://apps.apple.com/us/app/facebook/id$appStoreIdentifier';
 
   // --- External Keys ---
   String get oneSignalAppID => '';
-  String get sentryDSN => 'https://1bf27e832e4649c7a2014e8f919605cd@o964017.ingest.us.sentry.io/5912864';
+  String get sentryDSN =>
+      'https://1bf27e832e4649c7a2014e8f919605cd@o964017.ingest.us.sentry.io/5912864';
 }

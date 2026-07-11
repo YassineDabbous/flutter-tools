@@ -14,7 +14,11 @@ class HtmlWidget extends StatelessWidget {
     return MarkdownBody(
       selectable: true,
       data: html2md.convert(html),
-      styleSheet: MarkdownStyleSheet(p: size == null ? null : context.textTheme.bodyMedium?.copyWith(fontSize: size!)),
+      styleSheet: MarkdownStyleSheet(
+        p: size == null
+            ? null
+            : context.textTheme.bodyMedium?.copyWith(fontSize: size!),
+      ),
     );
   }
 }

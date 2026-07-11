@@ -5,18 +5,18 @@ homepage:
 publish_to: none
 
 environment:
-  sdk: ^3.11.0
+  sdk: ^3.12.0
+
+resolution: workspace
 
 dependencies:
   flutter:
     sdk: flutter
     
-  core:
-    path: ../../core
-  concrete:
-    path: ../../concrete
+  core: ^0.0.1
+  concrete: ^0.0.1
     
-  file_picker: ^9.2.3
+  file_picker: ^10.3.10
 
 dev_dependencies:
   flutter_test:

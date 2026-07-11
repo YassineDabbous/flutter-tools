@@ -9,5 +9,7 @@ extension NumxExtensions on num? {
   bool get isNotEmpty => !isEmpty;
 
   /// Formats the number as a currency string without a symbol (dinar style).
-  String get dinar => this == null ? '-' : NumberFormat.simpleCurrency(name: '', decimalDigits: 0).format(this);
+  String get dinar => this == null
+      ? '-'
+      : NumberFormat.simpleCurrency(name: '', decimalDigits: 0).format(this);
 }

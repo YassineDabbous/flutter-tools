@@ -21,9 +21,11 @@ class CustomLang {
 class LanguageBloc extends Cubit<LanguageState> {
   final SharedPrefHelper prefHelper;
 
-  static Iterable<CustomLang> get languages => Core.get<Config>().supportedLocales;
+  static Iterable<CustomLang> get languages =>
+      Core.get<Config>().supportedLocales;
 
-  LanguageBloc({required this.prefHelper}) : super(const LanguageState(lang: 0));
+  LanguageBloc({required this.prefHelper})
+    : super(const LanguageState(lang: 0));
 
   void getLang() {
     var lang = prefHelper.getLanguageIndex();

@@ -1,6 +1,10 @@
 extension Authorization on AuthResponse {
-  bool hasAbilityTo(String ability) => abilities.contains(ability) || abilities.contains('*') || abilities.isEmpty;
-  bool hasPermissionTo(dynamic permission) => permissions.contains(permission) || permissions.contains('*');
+  bool hasAbilityTo(String ability) =>
+      abilities.contains(ability) ||
+      abilities.contains('*') ||
+      abilities.isEmpty;
+  bool hasPermissionTo(dynamic permission) =>
+      permissions.contains(permission) || permissions.contains('*');
 }
 
 class AuthUser<ID> {
@@ -10,14 +14,15 @@ class AuthUser<ID> {
     required this.name,
     required this.photo,
   });
-  
+
   ID id;
   String type;
   String name;
   String? photo;
-  
-  String get photoUrl => photo ?? 'https://i.ytimg.com/vi/sSISeekwthY/hqdefault.jpg';
-  
+
+  String get photoUrl =>
+      photo ?? 'https://i.ytimg.com/vi/sSISeekwthY/hqdefault.jpg';
+
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
       id: json['id'] as ID,
@@ -42,10 +47,10 @@ class AuthResponse<ID> {
   List<dynamic> permissions;
 
   AuthResponse({
-    required this.user, 
-    required this.token, 
-    required this.abilities, 
-    required this.permissions
+    required this.user,
+    required this.token,
+    required this.abilities,
+    required this.permissions,
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
