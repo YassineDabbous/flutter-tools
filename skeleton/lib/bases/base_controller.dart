@@ -7,14 +7,7 @@ import 'package:skeleton/skeleton.dart';
 /// - [TFilterRequest]: The request model used for filtering and searching.
 /// - [TModel]: The data model for the resource.
 /// - [ID]: The identifier type (defaults to `dynamic` to support both int and String).
-abstract class BaseController<
-  TFilterRequest extends SuperModel<TFilterRequest>,
-  TModel,
-  ID
-> {
-  /// whether dealing with Admin API
-  bool forAdmin;
-
+abstract class BaseController<TFilterRequest extends SuperModel<TFilterRequest>, TModel, ID> {
   /// Model type ("user" for "User")
   String type;
 
@@ -47,7 +40,6 @@ abstract class BaseController<
     TFilterRequest? fixed,
     this.onIdsSelection,
     this.initiallySelectedIds,
-    this.forAdmin = false,
     this.enableSelection = true,
     this.fields = const [],
   }) {

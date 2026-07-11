@@ -26,10 +26,7 @@ abstract class MyBaseBloc<ApiType extends BaseApiService<dynamic, dynamic, dynam
   /// The base state, use as a factor for other states
   BaseState bs;
 
-  /// True when targeting the Admin API
-  bool forAdmin;
-
-  MyBaseBloc({required this.bs, this.forAdmin = false}) : super(bs.initial) {
+  MyBaseBloc({required this.bs}) : super(bs.initial) {
     init();
   }
 
@@ -62,7 +59,7 @@ abstract class MyBaseBloc<ApiType extends BaseApiService<dynamic, dynamic, dynam
     } else if (e is AppFailure) {
       return bs.error(error: e.message ?? 'Unknown failure');
     }
-    
+
     return bs.error(error: e.toString());
   }
 
@@ -81,7 +78,7 @@ abstract class MyBaseBloc<ApiType extends BaseApiService<dynamic, dynamic, dynam
     } catch (e) {
       // If it's already an AppFailure, just rethrow
       if (e is AppFailure) rethrow;
-      
+
       // Otherwise, the caller's try/catch will handle the unknown error
       rethrow;
     }
