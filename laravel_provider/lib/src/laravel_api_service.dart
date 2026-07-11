@@ -1,8 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:skeleton/skeleton.dart';
 import 'package:laravel_provider/laravel_provider.dart';
-import 'package:laravel_provider/src/advanced_requests.dart';
-import 'laravel_response.dart';
 
 /// Base class for Laravel service implementations.
 /// Provides a standard way to handle async requests and map errors.
