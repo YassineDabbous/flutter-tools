@@ -76,20 +76,23 @@ abstract class AuthLocalManager {
   Future<void> logout() async {
     currentUser = null;
     await _prefs.remove(_kKeyCurrentUser);
+    await Core.get<SecureAuthStorage>().deleteToken(_kKeyCurrentUser);
   }
 
   /// Clears active profile and root token.
   @mustCallSuper
   Future<void> hardLogout() async {
-    await logout();
+    currentUser = null;
+    await _prefs.remove(_kKeyCurrentUser);
     await _prefs.remove(_kKeyRealToken);
+    await Core.get<SecureAuthStorage>().clearAll();
   }
 
   bool check() => currentUser != null;
 
   bool guest() => !check();
 
-  /// Returns in-memory user or loads from SharedPreferences.
+  /// Loads user from SharedPreferences and restores token from secure storage.
   Future<AuthResponse?> getCurrentUser() async {
     logAuth.debug(
       "-------------- Fetching CURRENT_USER from SharedPreferences ... ---------------",
@@ -106,6 +109,13 @@ abstract class AuthLocalManager {
     if (_prefs.containsKey(_kKeyCurrentUser)) {
       String s = _prefs.get<String>(_kKeyCurrentUser)!;
       currentUser = AuthResponse.fromJson(json.decode(s));
+      // Restore token from secure storage
+      final token = await Core.get<SecureAuthStorage>().readToken(
+        _kKeyCurrentUser,
+      );
+      if (token != null && token.isNotEmpty) {
+        currentUser!.token = token;
+      }
       logAuth.debug(
         "---------------------------------------------------------",
       );
@@ -122,6 +132,10 @@ abstract class AuthLocalManager {
   Future setCurrentUser(AuthResponse user) async {
     try {
       await _prefs.set<String>(_kKeyCurrentUser, json.encode(user.toJson()));
+      await Core.get<SecureAuthStorage>().saveToken(
+        _kKeyCurrentUser,
+        user.token,
+      );
     } catch (e) {
       throw Exception(e);
     }
@@ -143,20 +157,21 @@ abstract class AuthLocalManager {
   // --- Real Token Management ---
 
   Future<String?> getRealAuthToken() async {
-    realToken = _prefs.get<String>(_kKeyRealToken);
+    realToken = await Core.get<SecureAuthStorage>().readToken(_kKeyRealToken);
     return realToken;
   }
 
   Future setRealAuthToken(String token) async {
     realToken = token;
-    await _prefs.set<String>(_kKeyRealToken, token);
+    await Core.get<SecureAuthStorage>().saveToken(_kKeyRealToken, token);
   }
 
-  /// Updates the token for the current user and persists it.
+  /// Updates the token for the current user and persists it in secure storage.
   Future<void> updateToken(String newToken) async {
     if (currentUser != null) {
       currentUser!.token = newToken;
-      await setCurrentUser(currentUser!);
+      await _prefs.set<String>(_kKeyCurrentUser, json.encode(currentUser!.toJson()));
+      await Core.get<SecureAuthStorage>().saveToken(_kKeyCurrentUser, newToken);
     }
   }
 }

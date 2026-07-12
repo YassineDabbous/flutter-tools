@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:core/core.dart';
 
 /// Interface for type adapters to handle complex types in SharedPreferences.
@@ -142,16 +143,28 @@ class SharedPrefHelper {
 
 /// Secure storage helper using flutter_secure_storage.
 class SecureAuthStorage {
+  final FlutterSecureStorage _storage;
+  SecureAuthStorage({FlutterSecureStorage? storage})
+    : _storage = storage ?? const FlutterSecureStorage();
+
   Future<void> saveToken(String key, String token) async {
-    logAuth.info('SecureAuthStorage: Saving token for $key (Mocked)');
+    await _storage.write(key: key, value: token);
+    logAuth.info('SecureAuthStorage: Token saved for $key');
   }
 
   Future<String?> readToken(String key) async {
-    logAuth.info('SecureAuthStorage: Reading token for $key (Mocked)');
-    return null;
+    final token = await _storage.read(key: key);
+    logAuth.info('SecureAuthStorage: Token read for $key');
+    return token;
+  }
+
+  Future<void> deleteToken(String key) async {
+    await _storage.delete(key: key);
+    logAuth.info('SecureAuthStorage: Token deleted for $key');
   }
 
   Future<void> clearAll() async {
-    logAuth.info('SecureAuthStorage: Clearing all tokens (Mocked)');
+    await _storage.deleteAll();
+    logAuth.info('SecureAuthStorage: All tokens cleared');
   }
 }

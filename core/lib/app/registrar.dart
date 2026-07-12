@@ -11,6 +11,7 @@ abstract class Registrar {
   Future init() async {
     // General local storage
     Core.i.addSingleton<SharedPrefHelper>(() => SharedPrefHelper());
+    Core.i.addSingleton<SecureAuthStorage>(() => SecureAuthStorage());
 
     // Execute concrete implementation registration (Provider provides AuthLocalManager)
     register();
