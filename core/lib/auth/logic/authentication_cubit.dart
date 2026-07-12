@@ -77,3 +77,13 @@ class AuthenticationAuthenticated extends AuthenticationState {
   @override
   List<Object?> get props => [auth];
 }
+
+class AuthPasswordRequired extends AuthenticationState {}
+
+class AuthSetupPassword extends AuthenticationState {}
+
+class AuthSuspended extends AuthenticationState {}
+
+class AuthBanned extends AuthenticationState {}
+
+class IdentityPending extends AuthenticationState {}
