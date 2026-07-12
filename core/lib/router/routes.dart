@@ -49,6 +49,12 @@ abstract class R {
   final String passwordResetRoute = '/password/reset';
   String passwordReset() => authRootRoute + passwordResetRoute;
 
+  final String otpRoute = '/otp';
+  String otp() => authRootRoute + otpRoute;
+
+  final String socialAuthRoute = '/social';
+  String socialAuth() => authRootRoute + socialAuthRoute;
+
   final String accountsRoute = '/accounts';
   String accounts() => authRootRoute + accountsRoute;
 
@@ -68,6 +74,8 @@ abstract class R {
   List<String> get guest => [
     login(),
     register(),
+    otp(),
+    socialAuth(),
     passwordForget(),
     passwordReset(),
     //password(),
