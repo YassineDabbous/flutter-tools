@@ -29,14 +29,14 @@ Future<Response<Map<String, dynamic>>> superRequestTransform({
   required Dio dio,
   required String path,
   String method = 'POST',
-  required String? baseUrl,
-  required Map<String, dynamic> fieldsAndFiles,
+  String? baseUrl,
+  Map<String, dynamic>? fieldsAndFiles,
   Map<String, dynamic>? queryParameters,
 }) async {
   final Map<String, dynamic> fields = {};
   final List<FileField> files = [];
 
-  fieldsAndFiles.forEach((key, value) {
+  fieldsAndFiles?.forEach((key, value) {
     if (value is FileField) {
       files.add(value);
     } else {
