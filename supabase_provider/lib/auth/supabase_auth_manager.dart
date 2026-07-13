@@ -10,7 +10,6 @@ class SupabaseAuthManager extends AuthLocalManager {
   @override
   bool check() => client.auth.currentSession != null;
 
-  @override
   Future<AuthResponse<dynamic>> login({
     required String email,
     required String password,
@@ -24,7 +23,6 @@ class SupabaseAuthManager extends AuthLocalManager {
     return auth;
   }
 
-  @override
   Future<AuthResponse<dynamic>> register({
     required Map<String, dynamic> data,
   }) async {
@@ -38,21 +36,18 @@ class SupabaseAuthManager extends AuthLocalManager {
     return auth;
   }
 
-  @override
   Future<void> forgotPassword(String email) async {
     await client.auth.resetPasswordForEmail(email);
   }
 
-  @override
   Future<void> logout() async {
     await client.auth.signOut();
-    await clearLocalAuth();
+    await clearAuth();
   }
 
-  @override
   Future<void> hardLogout() async {
     await client.auth.signOut();
-    await clearLocalAuthHard();
+    await clearAuthHard();
   }
 
   AuthResponse<dynamic> _mapSupabaseAuth(sb.AuthResponse response) {
@@ -72,14 +67,12 @@ class SupabaseAuthManager extends AuthLocalManager {
     );
   }
 
-  @override
   Future<AuthResponse<dynamic>?> fetchRemoteUser() async {
     final user = client.auth.currentUser;
     if (user == null) return null;
     return _mapSupabaseAuth(sb.AuthResponse(user: user, session: client.auth.currentSession));
   }
 
-  @override
   Future<void> updateProfile(Map<String, dynamic> data) async {
     await client.auth.updateUser(sb.UserAttributes(
       email: data['email'] as String?,
@@ -88,7 +81,6 @@ class SupabaseAuthManager extends AuthLocalManager {
     ));
   }
 
-  @override
   Future<void> changePassword(Map<String, dynamic> data) async {
     await client.auth.updateUser(sb.UserAttributes(
       password: data['new_password'] as String?,
@@ -102,7 +94,7 @@ class SupabaseAuthManager extends AuthLocalManager {
       if (session != null) {
         // Optionially sync local user if session is present but currentUser is null
       } else {
-        clearLocalAuth();
+        clearAuth();
       }
     });
   }

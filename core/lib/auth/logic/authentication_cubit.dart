@@ -27,13 +27,13 @@ class AuthenticationCubit extends Cubit<AuthenticationState> {
 
   /// Performs a soft logout.
   void logout() async {
-    await repository.logout();
+    await repository.clearAuth();
     emit(AuthenticationLogout());
   }
 
   /// Performs a hard logout (complete session termination).
   void logoutHard() async {
-    await repository.hardLogout();
+    await repository.clearAuthHard();
     emit(AuthenticationLogoutHard());
   }
 
@@ -51,7 +51,7 @@ class AuthenticationCubit extends Cubit<AuthenticationState> {
 
   /// Performs a hard logout on the repository without emitting a new state.
   Future localLogout() async {
-    await repository.hardLogout();
+    await repository.clearAuthHard();
   }
 }
 

@@ -32,59 +32,6 @@ abstract class AuthLocalManager {
     await getCurrentUser();
   }
 
-  // --- Backend Action Methods (To be implemented by Providers) ---
-
-  /// Performs backend login and updates local state on success.
-  Future<AuthResponse> login({required String email, required String password});
-
-  /// Performs backend registration.
-  Future<AuthResponse> register({required Map<String, dynamic> data});
-
-  /// Performs backend password recovery.
-  @Deprecated('Use OTP-based password reset instead')
-  Future<void> forgotPassword(String email);
-
-  /// General purpose sign-in with a specific scheme (OAuth, OTP, etc.)
-  Future<void> signInWithScheme(String scheme, {Map<String, dynamic>? params}) {
-    throw UnimplementedError(
-      'signInWithScheme not implemented for this provider',
-    );
-  }
-
-  /// Logs out on the backend, then clears active profile but keeps root token.
-  Future<void> logout();
-
-  /// Logs out on the backend, then clears active profile and root token.
-  Future<void> hardLogout();
-
-  /// Fetches the latest user profile from the backend.
-  Future<AuthResponse?> fetchRemoteUser();
-
-  /// Updates the user profile on the backend.
-  Future<void> updateProfile(Map<String, dynamic> data);
-
-  /// Changes the user password on the backend.
-  Future<void> changePassword(Map<String, dynamic> data);
-
-  // --- Local Persistence Helpers (call from provider overrides) ---
-
-  /// Clears active profile but keeps root token.
-  @protected
-  Future<void> clearLocalAuth() async {
-    currentUser = null;
-    await _prefs.remove(_kKeyCurrentUser);
-    await Core.get<SecureAuthStorage>().deleteToken(_kKeyCurrentUser);
-  }
-
-  /// Clears active profile and root token.
-  @protected
-  Future<void> clearLocalAuthHard() async {
-    currentUser = null;
-    await _prefs.remove(_kKeyCurrentUser);
-    await _prefs.remove(_kKeyRealToken);
-    await Core.get<SecureAuthStorage>().clearAll();
-  }
-
   // --- Local Persistence Logic ---
 
   /// Sets primary user (initial login). Saves both active profile and root token.
@@ -104,6 +51,21 @@ abstract class AuthLocalManager {
     currentUser = auth;
     await setCurrentUser(auth);
     logAuth.debug('DONE --------------------- USER SAVED LOCALLY');
+  }
+
+  /// Clears active profile but keeps root token.
+  Future<void> clearAuth() async {
+    currentUser = null;
+    await _prefs.remove(_kKeyCurrentUser);
+    await Core.get<SecureAuthStorage>().deleteToken(_kKeyCurrentUser);
+  }
+
+  /// Clears active profile and root token.
+  Future<void> clearAuthHard() async {
+    currentUser = null;
+    await _prefs.remove(_kKeyCurrentUser);
+    await _prefs.remove(_kKeyRealToken);
+    await Core.get<SecureAuthStorage>().clearAll();
   }
 
   bool check() => currentUser != null;
