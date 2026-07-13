@@ -46,13 +46,13 @@ class SupabaseAuthManager extends AuthLocalManager {
   @override
   Future<void> logout() async {
     await client.auth.signOut();
-    await super.logout();
+    await clearLocalAuth();
   }
 
   @override
   Future<void> hardLogout() async {
     await client.auth.signOut();
-    await super.hardLogout();
+    await clearLocalAuthHard();
   }
 
   AuthResponse<dynamic> _mapSupabaseAuth(sb.AuthResponse response) {
@@ -72,6 +72,29 @@ class SupabaseAuthManager extends AuthLocalManager {
     );
   }
 
+  @override
+  Future<AuthResponse<dynamic>?> fetchRemoteUser() async {
+    final user = client.auth.currentUser;
+    if (user == null) return null;
+    return _mapSupabaseAuth(sb.AuthResponse(user: user, session: client.auth.currentSession));
+  }
+
+  @override
+  Future<void> updateProfile(Map<String, dynamic> data) async {
+    await client.auth.updateUser(sb.UserAttributes(
+      email: data['email'] as String?,
+      password: data['password'] as String?,
+      data: data['data'] as Map<String, dynamic>?,
+    ));
+  }
+
+  @override
+  Future<void> changePassword(Map<String, dynamic> data) async {
+    await client.auth.updateUser(sb.UserAttributes(
+      password: data['new_password'] as String?,
+    ));
+  }
+
   /// Listen to Supabase auth changes and update the local state.
   void listenToAuthChanges() {
     client.auth.onAuthStateChange.listen((data) {
@@ -79,7 +102,7 @@ class SupabaseAuthManager extends AuthLocalManager {
       if (session != null) {
         // Optionially sync local user if session is present but currentUser is null
       } else {
-        super.logout();
+        clearLocalAuth();
       }
     });
   }
