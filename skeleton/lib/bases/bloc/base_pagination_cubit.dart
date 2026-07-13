@@ -344,7 +344,7 @@ mixin RealtimeMixin<
   /// Starts listening to the live stream for the current filter.
   void startRealtime() {
     _realtimeSubscription?.cancel();
-    _realtimeSubscription = http().stream(request: filter).listen((items) {
+    _realtimeSubscription = http().stream(data: filter).listen((items) {
       _handleRealtimeUpdate(List<Model>.from(items));
     });
   }

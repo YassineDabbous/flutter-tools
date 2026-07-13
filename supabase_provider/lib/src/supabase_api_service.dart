@@ -48,13 +48,13 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
 
   @override
   Future<ApiResponse<ID>> create({
-    required EditRequest request,
+    required EditRequest body,
     String? suffixPath,
   }) async {
     return handle(() async {
       final response = await client
           .from(table)
-          .insert(requestToJson(request))
+          .insert(requestToJson(body))
           .select('id')
           .single();
       return ApiResponse(data: response['id'] as ID);
@@ -76,13 +76,13 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
   @override
   Future<ApiResponse<ID>> update({
     required ID id,
-    required EditRequest request,
+    required EditRequest body,
     String? suffixPath,
   }) async {
     return handle(() async {
       await client
           .from(table)
-          .update(requestToJson(request))
+          .update(requestToJson(body))
           .eq('id', id as Object);
       return ApiResponse(data: id);
     });
@@ -169,13 +169,13 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
 
   @override
   Future<ApiResponse<List<Model>>> all({
-    required SearchRequest request,
+    SearchRequest? params,
     String? suffixPath,
   }) async {
     return handle(() async {
-      final selectStr = _buildSelect(request);
+      final selectStr = _buildSelect(params);
       var query = client.from(table).select(selectStr);
-      query = _buildQuery(query, request);
+      query = _buildQuery(query, params);
       final response = await query;
       final List<Model> data = (response as List)
           .map((json) => modelFromJson(json as Map<String, dynamic>))
@@ -187,13 +187,13 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
   @override
   Future<ApiResponse<PaginatedResponse<Model>>> paging({
     required int page,
-    required SearchRequest request,
+    SearchRequest? params,
     String? suffixPath,
   }) async {
     return handle(() async {
-      final selectStr = _buildSelect(request);
-      final perPage = (request is DynamicQueryRequest)
-          ? (request as DynamicQueryRequest).perPage ?? 15
+      final selectStr = _buildSelect(params);
+      final perPage = (params is DynamicQueryRequest)
+          ? (params as DynamicQueryRequest).perPage ?? 15
           : 15;
 
       final from = (page - 1) * perPage;
@@ -203,7 +203,7 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
       final dynamic baseQuery = client.from(table).select(selectStr);
       final dynamic query = _buildQuery(
         baseQuery.count(sb.CountOption.exact),
-        request,
+        params,
       );
 
       final dynamic response = await query.range(from, to);
@@ -234,7 +234,7 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
   @override
   Future<ApiResponse> manageRelations({
     required ID id,
-    required dynamic request,
+    required dynamic data,
   }) async {
     throw UnimplementedError(
       'Relationship management not implemented for Supabase yet',
@@ -242,7 +242,7 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
   }
 
   @override
-  Stream<List<Model>> stream({required SearchRequest request}) {
+  Stream<List<Model>> stream({required SearchRequest data}) {
     // Basic implementation for Supabase streaming
     // Note: Supabase streaming doesn't support complex filters directly yet in the same way as queries
     return client

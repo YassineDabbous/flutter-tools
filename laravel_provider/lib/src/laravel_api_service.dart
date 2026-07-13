@@ -6,8 +6,7 @@ import 'package:laravel_provider/laravel_provider.dart';
 /// Provides a standard way to handle async requests and map errors.
 ///
 /// ID type defaults to [int] for Laravel.
-abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
-    implements BaseApiService<Model, EditRequest, SearchRequest, ID> {
+abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implements BaseApiService<Model, EditRequest, SearchRequest, ID> {
   final Dio dio;
   final String? baseUrl;
 
@@ -31,102 +30,58 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
   /// Convert JSON to Model - must be implemented by concrete service
   Model modelFromJson(Map<String, dynamic> json);
 
+  ListResponse<Model> listFromJson(Map<String, dynamic> json) => ListResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
+  
+  PaginatedResponse<Model> pageFromJson(Map<String, dynamic> json) => LaravelPaginationResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
+
   /// Convert Request to JSON - must be implemented by concrete service
   Map<String, dynamic> requestToJson(EditRequest request);
 
-  @override
-  Future<ApiResponse<Model>> show({
-    required ID id,
-    SearchRequest? params,
-    String? suffixPath,
-  }) async {
+
+  /// Generic request and response transformer
+  Future<X> request<X>({String method = 'GET', String? suffixPath, Map<String, dynamic>? body, Map<String, dynamic>? params, required X Function(dynamic) fromJsonT}) async {
     return handle(() async {
-      final path = suffixPath != null
-          ? '/$endpoint/$id/$suffixPath'
-          : '/$endpoint/$id';
-      final result = await superRequestTransform(
-        dio: dio,
-        path: path,
-        method: 'GET',
-        baseUrl: baseUrl,
-        fieldsAndFiles: {},
-        queryParameters: params is Jsonable ? params.toJson() : null,
-      );
-      return BasicResponse<Model>.fromJson(
-        result.data!,
-        (json) => modelFromJson(json as Map<String, dynamic>),
-      );
+      final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
+      final result = await superRequestTransform(dio: dio, path: path, method: method, baseUrl: baseUrl, fieldsAndFiles: body, queryParameters: params);
+      return fromJsonT(result.data);
     });
   }
 
   @override
-  Future<ApiResponse<List<Model>>> all({
-    required SearchRequest request,
-    String? suffixPath,
-  }) async {
-    return handle(() async {
-      final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
-      final result = await superRequestTransform(
-        dio: dio,
-        path: path,
-        method: 'GET',
-        baseUrl: baseUrl,
-        fieldsAndFiles: {},
-        queryParameters: request is Jsonable ? request.toJson() : null,
-      );
-      return ListResponse<Model>.fromJson(
-        result.data!,
-        (json) => modelFromJson(json as Map<String, dynamic>),
-      );
-    });
+  Future<ApiResponse<Model>> show({required ID id, SearchRequest? params, String? suffixPath}) async {
+    return request<ApiResponse<Model>>(
+      suffixPath: suffixPath != null ? '/$id/$suffixPath' : '/$id',
+      params: params is Jsonable ? params.toJson() : null,
+      fromJsonT: (p0) => BasicResponse<Model>.fromJson(p0, (json) => modelFromJson(json as Map<String, dynamic>)),
+    );
   }
 
   @override
-  Future<ApiResponse<PaginatedResponse<Model>>> paging({
-    required int page,
-    required SearchRequest request,
-    String? suffixPath,
-  }) async {
-    return handle(() async {
-      final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
-      final query = request is Jsonable
-          ? request.toJson()
-          : <String, dynamic>{};
-      query['page'] = page;
+  Future<ApiResponse<List<Model>>> all({SearchRequest? params, String? suffixPath}) async {
+    return request<ApiResponse<List<Model>>>(
+      suffixPath: suffixPath,
+      params: params is Jsonable ? params.toJson() : null,
+      fromJsonT: (p0) => listFromJson(p0),
+    );
+  }
 
-      final result = await superRequestTransform(
-        dio: dio,
-        path: path,
-        method: 'GET',
-        baseUrl: baseUrl,
-        fieldsAndFiles: {},
-        queryParameters: query,
-      );
-
+  @override
+  Future<ApiResponse<PaginatedResponse<Model>>> paging({required int page, SearchRequest? params, String? suffixPath}) async {
+    final query = params is Jsonable ? params.toJson() : <String, dynamic>{};
+    query['page'] = page;
+    return request<ApiResponse<PaginatedResponse<Model>>>(
+      suffixPath: suffixPath,
+      params: query,
       // We wrap the pagination response in a BasicResponse to satisfy the ApiResponse requirement
-      return BasicResponse<PaginatedResponse<Model>>(
-        data: LaravelPaginationResponse<Model>.fromJson(
-          result.data!,
-          (json) => modelFromJson(json as Map<String, dynamic>),
-        ),
-      );
-    });
+      fromJsonT: (p0) => BasicResponse<PaginatedResponse<Model>>(data: pageFromJson(p0)),
+    );
   }
 
   @override
-  Future<ApiResponse<ID>> create({
-    required EditRequest request,
-    String? suffixPath,
-  }) async {
+  Future<ApiResponse<ID>> create({required EditRequest body, String? suffixPath}) async {
     return handle(() async {
       final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
-      final result = await superRequestTransform(
-        dio: dio,
-        path: path,
-        method: 'POST',
-        baseUrl: baseUrl,
-        fieldsAndFiles: requestToJson(request),
-      );
+      final result = await superRequestTransform(dio: dio, path: path, method: 'POST', baseUrl: baseUrl, fieldsAndFiles: requestToJson(body));
       // Laravel often returns the ID or the whole model
       final data = result.data!['data'];
       final id = (data is Map ? data['id'] : data) as ID;
@@ -135,90 +90,46 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
   }
 
   @override
-  Future<ApiResponse<ID>> update({
-    required ID id,
-    required EditRequest request,
-    String? suffixPath,
-  }) async {
-    return handle(() async {
-      final path = suffixPath != null
-          ? '/$endpoint/$id/$suffixPath'
-          : '/$endpoint/$id';
-      await superRequestTransform(
-        dio: dio,
-        path: path,
-        method: 'PUT',
-        baseUrl: baseUrl,
-        fieldsAndFiles: requestToJson(request),
-      );
-      return ApiResponse(data: id);
-    });
+  Future<ApiResponse<ID>> update({required ID id, required EditRequest body, String? suffixPath}) async {
+    return request<ApiResponse<ID>>(
+      method: 'PUT',
+      suffixPath: suffixPath != null ? '/$id/$suffixPath' : '/$id',
+      body: requestToJson(body),
+      fromJsonT: (p0) => ApiResponse(data: id),
+    );
   }
 
   @override
-  Future<ApiResponse<ID>> delete({
-    required ID id,
-    SearchRequest? params,
-    String? suffixPath,
-  }) async {
-    return handle(() async {
-      final path = suffixPath != null
-          ? '/$endpoint/$id/$suffixPath'
-          : '/$endpoint/$id';
-      await superRequestTransform(
-        dio: dio,
-        path: path,
-        method: 'DELETE',
-        baseUrl: baseUrl,
-        fieldsAndFiles: {},
-      );
-      return ApiResponse(data: id);
-    });
+  Future<ApiResponse<ID>> delete({required ID id, SearchRequest? params, String? suffixPath}) async {
+    return request<ApiResponse<ID>>(
+      method: 'DELETE',
+      suffixPath: suffixPath != null ? '/$id/$suffixPath' : '/$id',
+      params: params is Jsonable ? params.toJson() : null,
+      fromJsonT: (p0) => ApiResponse(data: id),
+    );
   }
 
   @override
-  Future<ApiResponse> manageRelations({
-    required ID id,
-    required dynamic request,
-  }) async {
-    return handle(() async {
-      final result = await superRequestTransform(
-        dio: dio,
-        path: '/$endpoint/$id/relations',
-        method: 'POST',
-        baseUrl: baseUrl,
-        fieldsAndFiles: request is Jsonable
-            ? request.toJson()
-            : request as Map<String, dynamic>,
-      );
-      return ApiResponse(data: result.data);
-    });
+  Future<ApiResponse> manageRelations({required ID id, required dynamic data}) async {
+    return request<ApiResponse>(
+      method: 'POST',
+      suffixPath: '/$id/relations',
+      body: data is Jsonable ? data.toJson() : data as Map<String, dynamic>,
+      fromJsonT: (p0) => ApiResponse(data: p0),
+    );
   }
 
   @override
-  Stream<List<Model>> stream({required SearchRequest request}) {
+  Stream<List<Model>> stream({required SearchRequest data}) {
     throw UnimplementedError('Streaming not supported for Laravel yet');
   }
 
   @override
-  Future<ApiResponse<T>> callFunction<T>(
-    String name, {
-    Map<String, dynamic>? params,
-  }) async {
+  Future<ApiResponse<T>> callFunction<T>(String name, {Map<String, dynamic>? params}) async {
     return handle(() async {
-      final request = ActionRequest(
-        action: name,
-        type: resourceType,
-        payload: params,
-      );
+      final body = ActionRequest(action: name, type: resourceType, payload: params);
 
-      final result = await superRequestTransform(
-        dio: dio,
-        path: '/_action_',
-        fieldsAndFiles: request.toJson(),
-        method: 'POST',
-        baseUrl: baseUrl,
-      );
+      final result = await superRequestTransform(dio: dio, path: '/_action_', fieldsAndFiles: body.toJson(), method: 'POST', baseUrl: baseUrl);
 
       return BasicResponse<T>.fromJson(result.data!, (json) => json as T);
     });

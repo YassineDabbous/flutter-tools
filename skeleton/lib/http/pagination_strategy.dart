@@ -17,7 +17,7 @@ class OffsetPaginationStrategy<Model, Filter>
     required int page,
     required Filter filter,
   }) async {
-    return (await api.paging(page: page, request: filter)).data!;
+    return (await api.paging(page: page, params: filter)).data!;
   }
 }
 
@@ -33,6 +33,6 @@ class CursorPaginationStrategy<Model, Filter>
     required int page,
     required Filter filter,
   }) async {
-    return (await api.paging(page: page, request: filter)).data!;
+    return (await api.paging(page: page, params: filter)).data!;
   }
 }

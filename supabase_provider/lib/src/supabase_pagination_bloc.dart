@@ -15,7 +15,7 @@ mixin SupabasePaginationBloc<
   @override
   Future<PaginatedResponse<Model>> load() async {
     // Current page is 1-indexed in skeleton, Supabase uses 0-indexed range
-    return (await http().paging(page: page, request: filter)).data!;
+    return (await http().paging(page: page, params: filter)).data!;
   }
 }
 

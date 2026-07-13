@@ -18,14 +18,14 @@ abstract class BaseApiService<Model, EditRequest, SearchRequest, ID> {
 
   /// Gets all resources at once.
   Future<ApiResponse<List<Model>>> all({
-    required SearchRequest request,
+    SearchRequest? params,
     String? suffixPath,
   });
 
   /// Retrieves resources using pagination.
   Future<ApiResponse<PaginatedResponse<Model>>> paging({
     required int page,
-    required SearchRequest request,
+    SearchRequest? params,
     String? suffixPath,
   });
 
@@ -38,25 +38,25 @@ abstract class BaseApiService<Model, EditRequest, SearchRequest, ID> {
 
   /// Creates a new resource.
   Future<ApiResponse<ID>> create({
-    required EditRequest request,
+    required EditRequest body,
     String? suffixPath,
   });
 
   /// Updates an existing resource.
   Future<ApiResponse<ID>> update({
     required ID id,
-    required EditRequest request,
+    required EditRequest body,
     String? suffixPath,
   });
 
   /// Manage resource relationships.
   Future<ApiResponse> manageRelations({
     required ID id,
-    required dynamic request,
+    required dynamic data,
   });
 
   /// Returns a live stream of data matching the search request.
-  Stream<List<Model>> stream({required SearchRequest request});
+  Stream<List<Model>> stream({required SearchRequest data});
 
   /// Executes a remote function/RPC call.
   Future<ApiResponse<T>> callFunction<T>(

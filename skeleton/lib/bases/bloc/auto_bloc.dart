@@ -23,8 +23,8 @@ mixin AutoCrudBloc<
     final bool isUpdate = (id != null && id != 0 && id != '');
 
     return (await (isUpdate
-            ? handle(http().update(id: id, request: request))
-            : handle(http().create(request: request))))
+            ? handle(http().update(id: id, body: request))
+            : handle(http().create(body: request))))
         .data!;
   }
 
@@ -43,9 +43,9 @@ mixin AutoPaginationBloc<
     on PaginationBloc<ApiType, BaseState, Model, Filter> {
   @override
   Future<PaginatedResponse<Model>> load() async =>
-      (await handle(http().paging(page: page, request: filter))).data!;
+      (await handle(http().paging(page: page, params: filter))).data!;
 
   @override
   Future<List<Model>> loadAll() async =>
-      (await handle(http().all(request: filter))).data ?? [];
+      (await handle(http().all(params: filter))).data ?? [];
 }

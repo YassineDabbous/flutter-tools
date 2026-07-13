@@ -6,11 +6,11 @@ class BasicResponse<T> extends ApiResponse<T> {
 
   BasicResponse({
     this.code,
-    String? message,
-    String? error,
+    super.message,
+    String? super.error,
     this.validation,
-    T? data,
-  }) : super(data: data, message: message, error: error);
+    super.data,
+  });
 
   factory BasicResponse.fromJson(
     dynamic json,
@@ -29,16 +29,11 @@ class BasicResponse<T> extends ApiResponse<T> {
 
 class LaravelPaginationResponse<T> extends PaginatedResponse<T> {
   LaravelPaginationResponse({
-    required List<T> data,
-    required int total,
-    required int perPage,
-    required int currentPage,
-  }) : super(
-         data: data,
-         total: total,
-         perPage: perPage,
-         currentPage: currentPage,
-       );
+    required super.data,
+    required super.total,
+    required super.perPage,
+    required super.currentPage,
+  });
 
   factory LaravelPaginationResponse.fromJson(
     dynamic json,
@@ -64,8 +59,7 @@ class LaravelPaginationResponse<T> extends PaginatedResponse<T> {
 }
 
 class ListResponse<T> extends ApiResponse<List<T>> {
-  ListResponse({List<T>? data, String? message, String? error})
-    : super(data: data, message: message, error: error);
+  ListResponse({super.data, super.message, String? super.error});
 
   factory ListResponse.fromJson(
     dynamic json,
