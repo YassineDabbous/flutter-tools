@@ -42,7 +42,7 @@ mixin AutoPaginationBloc<
 >
     on PaginationBloc<ApiType, BaseState, Model, Filter> {
   @override
-  Future<PaginatedResponse<Model>> load() async =>
+  Future<PaginatedList<Model>> load() async =>
       (await handle(http().paging(page: page, params: filter))).data!;
 
   @override

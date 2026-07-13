@@ -315,7 +315,7 @@ mixin PaginationBloc<
 
   /// Call the API/Repository for resources paging.
   @protected
-  Future<PaginatedResponse<Model>> load();
+  Future<PaginatedList<Model>> load();
 
   /// Load all results at once
   /// Call the API/Repository to get all resources at once.

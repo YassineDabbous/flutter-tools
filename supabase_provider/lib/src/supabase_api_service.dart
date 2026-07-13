@@ -185,7 +185,7 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
   }
 
   @override
-  Future<ApiResponse<PaginatedResponse<Model>>> paging({
+  Future<ApiResponse<PaginatedList<Model>>> paging({
     required int page,
     SearchRequest? params,
     String? suffixPath,
@@ -221,7 +221,7 @@ abstract class SupabaseApiService<Model, EditRequest, SearchRequest, ID>
           .toList();
 
       return ApiResponse(
-        data: PaginatedResponse(
+        data: PaginatedList(
           data: data,
           total: count,
           perPage: perPage,

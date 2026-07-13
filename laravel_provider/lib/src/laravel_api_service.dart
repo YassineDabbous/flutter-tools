@@ -30,20 +30,22 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
   /// Convert JSON to Model - must be implemented by concrete service
   Model modelFromJson(Map<String, dynamic> json);
 
+  BasicResponse<Model> basicFromJson(Map<String, dynamic> json) => BasicResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
+  
   ListResponse<Model> listFromJson(Map<String, dynamic> json) => ListResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
   
-  PaginatedResponse<Model> pageFromJson(Map<String, dynamic> json) => LaravelPaginationResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
+  PaginationResponse<Model> pageFromJson(Map<String, dynamic> json) => PaginationResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
 
   /// Convert Request to JSON - must be implemented by concrete service
   Map<String, dynamic> requestToJson(EditRequest request);
 
 
   /// Generic request and response transformer
-  Future<X> request<X>({String method = 'GET', String? suffixPath, Map<String, dynamic>? body, Map<String, dynamic>? params, required X Function(dynamic) fromJsonT}) async {
+  Future<X> request<X>({String method = 'GET', String? suffixPath, Map<String, dynamic>? body, Map<String, dynamic>? params, required X Function(Map<String, dynamic>) fromJsonT}) async {
     return handle(() async {
       final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
       final result = await superRequestTransform(dio: dio, path: path, method: method, baseUrl: baseUrl, fieldsAndFiles: body, queryParameters: params);
-      return fromJsonT(result.data);
+      return fromJsonT(result.data!);
     });
   }
 
@@ -52,7 +54,7 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
     return request<ApiResponse<Model>>(
       suffixPath: suffixPath != null ? '/$id/$suffixPath' : '/$id',
       params: params is Jsonable ? params.toJson() : null,
-      fromJsonT: (p0) => BasicResponse<Model>.fromJson(p0, (json) => modelFromJson(json as Map<String, dynamic>)),
+      fromJsonT: basicFromJson,
     );
   }
 
@@ -61,19 +63,19 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
     return request<ApiResponse<List<Model>>>(
       suffixPath: suffixPath,
       params: params is Jsonable ? params.toJson() : null,
-      fromJsonT: (p0) => listFromJson(p0),
+      fromJsonT: listFromJson,
     );
   }
 
   @override
-  Future<ApiResponse<PaginatedResponse<Model>>> paging({required int page, SearchRequest? params, String? suffixPath}) async {
+  Future<PaginationResponse<Model>> paging({required int page, SearchRequest? params, String? suffixPath}) async {
     final query = params is Jsonable ? params.toJson() : <String, dynamic>{};
     query['page'] = page;
-    return request<ApiResponse<PaginatedResponse<Model>>>(
+    return request<PaginationResponse<Model>>(
       suffixPath: suffixPath,
       params: query,
       // We wrap the pagination response in a BasicResponse to satisfy the ApiResponse requirement
-      fromJsonT: (p0) => BasicResponse<PaginatedResponse<Model>>(data: pageFromJson(p0)),
+      fromJsonT: pageFromJson,
     );
   }
 

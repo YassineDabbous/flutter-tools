@@ -13,14 +13,14 @@ mixin SupabasePaginationBloc<
         PaginationBloc<ApiType, BaseState, Model, SearchFilter>,
         RealtimeMixin<ApiType, BaseState, Model, SearchFilter> {
   @override
-  Future<PaginatedResponse<Model>> load() async {
+  Future<PaginatedList<Model>> load() async {
     // Current page is 1-indexed in skeleton, Supabase uses 0-indexed range
     return (await http().paging(page: page, params: filter)).data!;
   }
 }
 
 /// A generic paginated response implementation for Supabase.
-class SupabasePaginatedResponse<T> implements PaginatedResponse<T> {
+class SupabasePaginatedList<T> implements PaginatedList<T> {
   @override
   final List<T> data;
   @override
@@ -30,7 +30,7 @@ class SupabasePaginatedResponse<T> implements PaginatedResponse<T> {
   @override
   final int currentPage;
 
-  SupabasePaginatedResponse({
+  SupabasePaginatedList({
     required this.data,
     required this.total,
     required this.perPage,

@@ -8,13 +8,13 @@ class ApiResponse<T> {
 }
 
 /// Generic paginated response wrapper.
-class PaginatedResponse<T> {
+class PaginatedList<T> {
   final List<T> data;
   final int total;
   final int perPage;
   final int currentPage;
 
-  PaginatedResponse({
+  PaginatedList({
     required this.data,
     required this.total,
     required this.perPage,

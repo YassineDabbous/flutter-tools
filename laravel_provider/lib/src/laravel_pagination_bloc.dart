@@ -11,7 +11,7 @@ mixin LaravelPaginationBloc<
 >
     on PaginationBloc<ApiType, BaseState, Model, SearchRequest> {
   @override
-  Future<PaginatedResponse<Model>> load() async {
+  Future<PaginatedList<Model>> load() async {
     return (await http().paging(page: page, params: filter)).data!;
   }
 }

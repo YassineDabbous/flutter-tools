@@ -27,15 +27,15 @@ class BasicResponse<T> extends ApiResponse<T> {
   }
 }
 
-class LaravelPaginationResponse<T> extends PaginatedResponse<T> {
-  LaravelPaginationResponse({
+class LaravelPaginatedList<T> extends PaginatedList<T> {
+  LaravelPaginatedList({
     required super.data,
     required super.total,
     required super.perPage,
     required super.currentPage,
   });
 
-  factory LaravelPaginationResponse.fromJson(
+  factory LaravelPaginatedList.fromJson(
     dynamic json,
     T Function(dynamic json) fromJsonT,
   ) {
@@ -46,7 +46,7 @@ class LaravelPaginationResponse<T> extends PaginatedResponse<T> {
     // Meta/Links might be separate or merged
     final meta = map['meta'] as Map<String, dynamic>? ?? map;
 
-    return LaravelPaginationResponse<T>(
+    return LaravelPaginatedList<T>(
       data: dataList,
       total: meta['total'] as int? ?? 0,
       perPage: meta['per_page'] as int? ?? 15,
@@ -70,6 +70,22 @@ class ListResponse<T> extends ApiResponse<List<T>> {
       data: map['data'] != null
           ? (map['data'] as List).map(fromJsonT).toList()
           : null,
+      message: map['message'] as String?,
+      error: map['error'] as String?,
+    );
+  }
+}
+
+class PaginationResponse<T> extends BasicResponse<PaginatedList<T>> {
+  PaginationResponse({super.data, super.message, super.error});
+
+  factory PaginationResponse.fromJson(
+    dynamic json,
+    T Function(dynamic json) fromJsonT,
+  ) {
+    final map = json as Map<String, dynamic>;
+    return PaginationResponse<T>(
+      data: LaravelPaginatedList.fromJson(json, fromJsonT),
       message: map['message'] as String?,
       error: map['error'] as String?,
     );

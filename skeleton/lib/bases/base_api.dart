@@ -23,7 +23,7 @@ abstract class BaseApiService<Model, EditRequest, SearchRequest, ID> {
   });
 
   /// Retrieves resources using pagination.
-  Future<ApiResponse<PaginatedResponse<Model>>> paging({
+  Future<ApiResponse<PaginatedList<Model>>> paging({
     required int page,
     SearchRequest? params,
     String? suffixPath,
