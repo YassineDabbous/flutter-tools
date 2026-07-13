@@ -111,7 +111,7 @@ class _DropDownMultiMapSelectState<K, V>
           isDense: widget.isDense,
           onChanged: widget.enabled ? (x) {} : null,
           isExpanded: false,
-          value: widget.selectedValues.isNotEmpty
+          initialValue: widget.selectedValues.isNotEmpty
               ? widget.selectedValues[0]
               : null,
           selectedItemBuilder: (context) => widget.options.entries

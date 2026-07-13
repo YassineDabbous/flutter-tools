@@ -174,8 +174,9 @@ class _JsonEditorState extends State<JsonEditor> {
   ) {
     for (final node in schema) {
       if (!jsonMap.containsKey(node.key)) {
-        if (node is JsonSchemaNodeWithDefault)
+        if (node is JsonSchemaNodeWithDefault) {
           jsonMap[node.key] = node.defaultValue;
+        }
         if (node is ObjectSchemaNode) {
           jsonMap[node.key] = <String, dynamic>{};
           _populateMissingWithDefaults(

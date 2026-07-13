@@ -40,12 +40,14 @@ class RetryInterceptor extends Interceptor {
     if (err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.sendTimeout ||
-        err.type == DioExceptionType.connectionError)
+        err.type == DioExceptionType.connectionError) {
       return true;
+    }
 
     if (err.response != null &&
-        retryableStatusCodes.contains(err.response!.statusCode))
+        retryableStatusCodes.contains(err.response!.statusCode)) {
       return true;
+    }
 
     return false;
   }

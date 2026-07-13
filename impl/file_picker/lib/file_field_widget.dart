@@ -51,7 +51,7 @@ class FileFieldPreview extends StatelessWidget {
     final isEmpty = file.data == null && file.fullUrl == null;
     final filledColor = isEmpty
         ? null
-        : context.colorScheme.primary.withOpacity(0.3);
+        : context.colorScheme.primary.withValues(alpha: 0.3);
     switch (file.type) {
       case FileType.IMAGE:
         if (isEmpty) {

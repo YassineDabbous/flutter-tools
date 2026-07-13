@@ -99,7 +99,7 @@ abstract class DynamicQueryRequest<T> extends SuperModel<T> {
   }
 
   DynamicQueryRequest<T> include(List<String> relationships) {
-    this.includes = relationships;
+    includes = relationships;
     return this;
   }
 

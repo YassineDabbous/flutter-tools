@@ -311,7 +311,7 @@ class _RelationsSelectorState<T extends BaseModel>
                     selected: isHighlighted,
                     selectedTileColor: Theme.of(
                       context,
-                    ).primaryColor.withOpacity(0.2),
+                    ).primaryColor.withValues(alpha: 0.2),
                     dense: true,
                   );
                 },

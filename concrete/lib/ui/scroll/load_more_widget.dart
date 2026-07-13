@@ -69,8 +69,9 @@ class LoadMoreWidgetState extends State<LoadMoreWidget> {
 
   // ------------------------
   int getItemsCount() {
-    if (!widget.adsEnabled || widget.adsAfter == 0 || widget.itemCount == 0)
+    if (!widget.adsEnabled || widget.adsAfter == 0 || widget.itemCount == 0) {
       return widget.itemCount;
+    }
     int s = widget.itemCount;
     int p = (s ~/ (widget.adsAfter));
     int t = s + p;
