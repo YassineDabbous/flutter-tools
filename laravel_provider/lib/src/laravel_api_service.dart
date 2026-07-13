@@ -74,7 +74,6 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
     return request<PaginationResponse<Model>>(
       suffixPath: suffixPath,
       params: query,
-      // We wrap the pagination response in a BasicResponse to satisfy the ApiResponse requirement
       fromJsonT: pageFromJson,
     );
   }
