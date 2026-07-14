@@ -3,20 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
-/// A data model representing a supported application theme.
 class CustomTheme {
-  /// The user-friendly name of the theme (e.g., 'Dark Mode').
   final String name;
-
-  /// The actual Flutter [ThemeData] object.
   final ThemeData themeData;
 
   CustomTheme(this.name, this.themeData);
 }
-
-//
-// --- Cubit ---
-//
 
 class ThemeBloc extends Cubit<ThemeState> {
   final SharedPrefHelper prefHelper;
@@ -30,24 +22,33 @@ class ThemeBloc extends Cubit<ThemeState> {
 
   void getTheme() async {
     var themeIndex = prefHelper.getThemeIndex();
-    emit(ThemeState(theme: Core.get<Config>().themes.elementAt(themeIndex)));
+    var themeModeIndex = prefHelper.getThemeModeIndex();
+    emit(ThemeState(
+      theme: Core.get<Config>().themes.elementAt(themeIndex),
+      themeMode: ThemeMode.values[themeModeIndex],
+    ));
   }
 
   Future setTheme(int themeIndex) async {
     await prefHelper.saveThemeIndex(themeIndex);
-    emit(ThemeState(theme: Core.get<Config>().themes.elementAt(themeIndex)));
+    emit(ThemeState(
+      theme: Core.get<Config>().themes.elementAt(themeIndex),
+      themeMode: state.themeMode,
+    ));
+  }
+
+  Future setThemeMode(ThemeMode mode) async {
+    await prefHelper.saveThemeModeIndex(mode.index);
+    emit(ThemeState(theme: state.theme, themeMode: mode));
   }
 }
 
-//
-// --- States ---
-//
-
 class ThemeState extends Equatable {
   final CustomTheme theme;
+  final ThemeMode themeMode;
 
-  const ThemeState({required this.theme});
+  const ThemeState({required this.theme, this.themeMode = ThemeMode.light});
 
   @override
-  List<Object> get props => [theme];
+  List<Object> get props => [theme, themeMode];
 }

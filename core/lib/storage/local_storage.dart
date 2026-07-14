@@ -67,6 +67,7 @@ class _JsonMapAdapter extends PrefAdapter<Map<String, dynamic>> {
 /// A helper class for managing local data persistence using SharedPreferences.
 class SharedPrefHelper {
   static const _selectedTheme = "selectedTheme";
+  static const _selectedThemeMode = "selectedThemeMode";
   static const _selectedLanguage = "selectedLanguage";
   static const _selectedFont = "selectedFont";
   static const _introducerKey = "introducerKey";
@@ -121,6 +122,9 @@ class SharedPrefHelper {
 
   int getThemeIndex() => get<int>(_selectedTheme) ?? 0;
   Future<void> saveThemeIndex(int value) => set<int>(_selectedTheme, value);
+
+  int getThemeModeIndex() => get<int>(_selectedThemeMode) ?? 0;
+  Future<void> saveThemeModeIndex(int value) => set<int>(_selectedThemeMode, value);
 
   int getLanguageIndex() => get<int>(_selectedLanguage) ?? 0;
   Future<void> saveLanguageIndex(int value) =>
