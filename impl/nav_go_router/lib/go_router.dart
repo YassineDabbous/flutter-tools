@@ -15,6 +15,7 @@ class GoRouterNav implements AppNavigator {
         final navState = NavState(
           pathParams: state.pathParameters,
           queryParams: state.uri.queryParameters,
+          extra: state.extra,
         );
         return route.builder(context, navState);
       },

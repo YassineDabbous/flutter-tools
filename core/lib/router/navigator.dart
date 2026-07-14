@@ -5,7 +5,8 @@ import 'package:flutter/widgets.dart';
 class NavState {
   final Map<String, String>? pathParams;
   final Map<String, String>? queryParams;
-  const NavState({this.pathParams, this.queryParams});
+  final Object? extra;
+  const NavState({this.pathParams, this.queryParams, this.extra});
 }
 
 /// Data model for defining an application route.
