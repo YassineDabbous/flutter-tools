@@ -17,7 +17,11 @@ class AuthCheckerCubit extends Cubit<AuthCheckerState> {
       final realToken = await repository.getRealAuthToken();
 
       if (realToken == null) {
-        emit(AuthNotIdentified());
+        if (currentUser != null && currentUser.token.isNotEmpty) {
+          emit(AuthIdentified(auth: currentUser));
+        } else {
+          emit(AuthNotIdentified());
+        }
       } else if (currentUser != null) {
         emit(AuthIdentified(auth: currentUser));
       } else {
