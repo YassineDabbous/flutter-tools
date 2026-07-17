@@ -38,9 +38,15 @@ class LaravelErrorMapper {
       if (response.statusCode! >= 500) {
         return ServerFailure(basicResponse?.message ?? 'Server error');
       }
+
+      if (response.statusCode! >= 400) {
+        return ServerFailure(
+          basicResponse?.message ?? dioError.message ?? 'Server error',
+        );
+      }
     }
 
-    return ServerFailure(dioError.message);
+    return ServerFailure(dioError.message ?? 'An unexpected error occurred');
   }
 }
 
