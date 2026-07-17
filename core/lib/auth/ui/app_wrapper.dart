@@ -60,6 +60,16 @@ class AppWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (Core.get<AuthLocalManager>().check()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final navPath = Core.nav.path;
+        final routes = Core.get<R>();
+        if (routes.guest.contains(navPath)) {
+          Core.nav.pushReplacement(routes.redirectAfterLogin);
+        }
+      });
+    }
+
     // Listens for authentication changes without rebuilding the widget tree below it.
     return BlocListener<AuthenticationCubit, AuthenticationState>(
       listener: listener,
