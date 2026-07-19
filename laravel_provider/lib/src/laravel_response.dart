@@ -84,8 +84,11 @@ class PaginationResponse<T> extends BasicResponse<PaginatedList<T>> {
     T Function(dynamic json) fromJsonT,
   ) {
     final map = json as Map<String, dynamic>;
+    final paginatorMap = (map.containsKey('code') && map['data'] is Map<String, dynamic>)
+        ? map['data'] as Map<String, dynamic>
+        : map;
     return PaginationResponse<T>(
-      data: LaravelPaginatedList.fromJson(json, fromJsonT),
+      data: LaravelPaginatedList.fromJson(paginatorMap, fromJsonT),
       message: map['message'] as String?,
       error: map['error'] as String?,
     );
