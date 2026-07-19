@@ -32,7 +32,7 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
 
   BasicResponse<Model> basicFromJson(Map<String, dynamic> json) => BasicResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
   
-  ListResponse<Model> listFromJson(Map<String, dynamic> json) => ListResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
+  FullListResponse<Model> listFromJson(Map<String, dynamic> json) => FullListResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
   
   PaginationResponse<Model> pageFromJson(Map<String, dynamic> json) => PaginationResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
 
