@@ -3,21 +3,23 @@ import 'package:core/core.dart';
 import '../interceptors/interceptors.dart';
 
 class DioClientFactory {
-  static Dio create({
-    required String baseUrl,
-    required Config config,
-    required AuthLocalManager authManager,
-    required SharedPrefHelper prefHelper,
-    bool debug = false,
-  }) {
-    final dio = Dio(
+  static Dio createDio(String baseUrl) {
+    return Dio(
       BaseOptions(
         baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
       ),
     );
+  }
 
+  static void addInterceptors(
+    Dio dio, {
+    required Config config,
+    required AuthLocalManager authManager,
+    required SharedPrefHelper prefHelper,
+    bool debug = false,
+  }) {
     final interceptors = [
       AuthInterceptor(config, authManager, prefHelper),
       TokenRefreshInterceptor(authManager, dio),
@@ -26,10 +28,10 @@ class DioClientFactory {
     ];
 
     if (debug) {
-      interceptors.add(PrettyLogInterceptor());
+      interceptors.add(PrettyLogInterceptor( logPrint: (o) => Object().logNet.info(o.toString()), ) );
     }
 
     dio.interceptors.addAll(interceptors);
-    return dio;
+
   }
 }
