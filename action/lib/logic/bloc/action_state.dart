@@ -1,4 +1,4 @@
-part of 'action_bloc.dart';
+part of 'action_cubit.dart';
 
 class ActionState extends MyBaseState<dynamic> {
   @override
