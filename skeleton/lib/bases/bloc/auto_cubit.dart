@@ -3,7 +3,7 @@ import 'package:skeleton/skeleton.dart';
 /// Automated CRUD logic that eliminates the need to override standard API calls.
 ///
 /// It assumes the [ApiType] follows the [BaseApiService] contract.
-mixin AutoCrudBloc<
+mixin AutoCrudCubit<
   ApiType extends BaseApiService<Model, Request, Filter, ID>,
   BaseState extends CrudState<BaseState, Model, ID>,
   Model,
@@ -11,7 +11,7 @@ mixin AutoCrudBloc<
   Filter,
   ID
 >
-    on CrudBloc<ApiType, BaseState, Model, Request, Filter, ID> {
+    on CrudCubit<ApiType, BaseState, Model, Request, Filter, ID> {
   @override
   Future<Model> one({required ID id, Filter? params}) async =>
       (await handle(http().show(id: id, params: params))).data!;
@@ -34,13 +34,13 @@ mixin AutoCrudBloc<
 }
 
 /// Automated Pagination logic.
-mixin AutoPaginationBloc<
+mixin AutoPaginationCubit<
   ApiType extends BaseApiService<Model, dynamic, Filter, dynamic>,
   BaseState extends PaginationState<BaseState, Model>,
   Model,
   Filter
 >
-    on PaginationBloc<ApiType, BaseState, Model, Filter> {
+    on PaginationCubit<ApiType, BaseState, Model, Filter> {
   @override
   Future<PaginatedList<Model>> load() async =>
       (await handle(http().paging(page: page, params: filter))).data!;

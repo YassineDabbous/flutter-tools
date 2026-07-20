@@ -10,7 +10,7 @@ mixin SupabasePaginationBloc<
   ID
 >
     on
-        PaginationBloc<ApiType, BaseState, Model, SearchFilter>,
+        PaginationCubit<ApiType, BaseState, Model, SearchFilter>,
         RealtimeMixin<ApiType, BaseState, Model, SearchFilter> {
   @override
   Future<PaginatedList<Model>> load() async {

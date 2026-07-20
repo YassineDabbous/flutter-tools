@@ -28,12 +28,12 @@ mixin StatisticsState<StateType> on MyBaseState<StateType> {
 //
 //
 
-mixin StatisticsBloc<
+mixin StatisticsCubit<
   ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>,
   BaseState extends StatisticsState<BaseState>,
   Filter
 >
-    on MyBaseBloc<ApiType, BaseState> {
+    on MyBaseCubit<ApiType, BaseState> {
   StatisticsResponse? statistics;
 
   /// Make a http call to get `StatisticsResponse` data.

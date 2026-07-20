@@ -48,7 +48,7 @@ mixin CrudState<StateType, Model, ID> on MyBaseState<StateType> {
 //
 //
 
-mixin CrudBloc<
+mixin CrudCubit<
   ApiType extends BaseApiService<Model, Request, Filter, ID>,
   BaseState extends CrudState<BaseState, Model, ID>,
   Model,
@@ -56,7 +56,7 @@ mixin CrudBloc<
   Filter,
   ID
 >
-    on MyBaseBloc<ApiType, BaseState> {
+    on MyBaseCubit<ApiType, BaseState> {
   Model? model;
 
   /// Make a http call to get `Model` data.

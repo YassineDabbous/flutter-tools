@@ -4,7 +4,7 @@ part 'action_state.dart';
 
 class ActionCubit
     extends
-        MyBaseBloc<
+        MyBaseCubit<
           BaseApiService<dynamic, dynamic, dynamic, dynamic>,
           ActionState
         > {

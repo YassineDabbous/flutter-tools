@@ -20,7 +20,7 @@ abstract class MyBaseState<StateType> extends Equatable {
   StateType validation(Map<String, dynamic> bag);
 }
 
-abstract class MyBaseBloc<
+abstract class MyBaseCubit<
   ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>,
   BaseState extends MyBaseState
 >
@@ -31,7 +31,7 @@ abstract class MyBaseBloc<
   /// The base state, use as a factor for other states
   BaseState bs;
 
-  MyBaseBloc({required this.bs}) : super(bs.initial) {
+  MyBaseCubit({required this.bs}) : super(bs.initial) {
     init();
   }
 

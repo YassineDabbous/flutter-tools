@@ -35,13 +35,13 @@ enum PagingMode {
   paginated,
 }
 
-mixin PaginationBloc<
+mixin PaginationCubit<
   ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>,
   BaseState extends PaginationState<BaseState, Model>,
   Model,
   SearchFilter
 >
-    on MyBaseBloc<ApiType, BaseState> {
+    on MyBaseCubit<ApiType, BaseState> {
   /// Timer for debouncing search/refresh calls
   Timer? _debounceTimer;
 
@@ -331,14 +331,14 @@ mixin PaginationBloc<
   }
 }
 
-/// Mixin for [PaginationBloc] to support live data streams.
+/// Mixin for [PaginationCubit] to support live data streams.
 mixin RealtimeMixin<
   ApiType extends BaseApiService<dynamic, dynamic, dynamic, dynamic>,
   BaseState extends PaginationState<BaseState, Model>,
   Model,
   SearchFilter
 >
-    on PaginationBloc<ApiType, BaseState, Model, SearchFilter> {
+    on PaginationCubit<ApiType, BaseState, Model, SearchFilter> {
   StreamSubscription? _realtimeSubscription;
 
   /// Starts listening to the live stream for the current filter.

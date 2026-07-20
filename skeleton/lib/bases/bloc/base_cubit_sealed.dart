@@ -12,7 +12,7 @@ import 'package:flutter/widgets.dart';
 //
 //
 
-mixin SealedPagingBloc<Base, Initial, Loading, Loaded, Error> {
+mixin SealedPagingCubit<Base, Initial, Loading, Loaded, Error> {
   Widget builder({
     required Base state,
     required Widget Function(Initial) initial,

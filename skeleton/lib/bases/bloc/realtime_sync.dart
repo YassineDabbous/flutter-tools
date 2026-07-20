@@ -6,7 +6,7 @@ mixin RealtimeSync<
   ApiType extends BaseApiService,
   BaseState extends MyBaseState
 >
-    on MyBaseBloc<ApiType, BaseState> {
+    on MyBaseCubit<ApiType, BaseState> {
   StreamSubscription? _syncSubscription;
 
   /// Starts listening to a stream of updates.
