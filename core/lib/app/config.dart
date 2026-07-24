@@ -41,4 +41,8 @@ abstract class Config {
   String get oneSignalAppID => '';
   String get sentryDSN =>
       'https://1bf27e832e4649c7a2014e8f919605cd@o964017.ingest.us.sentry.io/5912864';
+
+  // --- WebSocket (Pusher) ---
+  String get pusherKey => '';
+  String get pusherCluster => 'mt1';
 }
