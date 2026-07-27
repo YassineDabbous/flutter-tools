@@ -139,11 +139,11 @@ class Img extends StatelessWidget {
             fit: fit,
             width: width,
             height: height,
-            placeholder: (context, url) =>
-                const Center(child: CircularProgressIndicator()),
-            errorWidget: (context, url, error) => const Center(
-              child: Expanded(child: Text('Unable to load Image')),
-            ),
+            placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+            errorWidget: (context, url, error) {
+              debugPrint('Img.network error: $url → $error');
+              return const Center(child: Text('Unable to load Image'));
+            },
           );
   }
 }
