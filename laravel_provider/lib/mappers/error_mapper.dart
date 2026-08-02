@@ -42,7 +42,9 @@ class LaravelErrorMapper {
         return const NotFoundFailure();
       }
       if (response.statusCode == 422) {
-        Object().logNet.warning('Validation failure: ${basicResponse?.message}');
+        Object().logNet.warning(
+          'Validation failure: ${basicResponse?.message}',
+        );
         return ValidationFailure(
           errors: basicResponse?.validation ?? {},
           message: basicResponse?.message,
@@ -50,13 +52,16 @@ class LaravelErrorMapper {
       }
 
       if (response.statusCode! >= 500) {
-        final msg = basicResponse?.message ?? 'Server error';
+        final msg =
+            basicResponse?.error ?? basicResponse?.message ?? 'Server error';
         Object().logNet.error('Server error ($msg)');
         return ServerFailure(msg);
       }
 
       if (response.statusCode! >= 400) {
-        final msg = basicResponse?.message ??
+        final msg =
+            basicResponse?.error ??
+            basicResponse?.message ??
             dioError.message ??
             'Server error';
         Object().logNet.error('Client error ($msg)');
