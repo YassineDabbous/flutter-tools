@@ -37,6 +37,11 @@ class RetryInterceptor extends Interceptor {
   }
 
   bool _shouldRetry(DioException err) {
+    const idempotentMethods = {'GET', 'HEAD', 'OPTIONS'};
+    if (!idempotentMethods.contains(err.requestOptions.method)) {
+      return false;
+    }
+
     if (err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.sendTimeout ||
