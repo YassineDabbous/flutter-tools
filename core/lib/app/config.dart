@@ -45,4 +45,11 @@ abstract class Config {
   // --- WebSocket (Pusher) ---
   String get pusherKey => '';
   String get pusherCluster => 'mt1';
+
+  // When [pusherHost] is set, `SocketService` connects to a self-hosted
+  // Reverb/Pusher server via `ws(s)://<host>:<port>/app/<key>` instead of
+  // the `ws-<cluster>.pusher.com` endpoint. Null keeps the clustered mode.
+  String? get pusherHost => null;
+  int? get pusherPort => null;
+  String? get pusherScheme => null;
 }
