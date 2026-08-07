@@ -38,8 +38,9 @@ class LaravelErrorMapper {
         return PermissionFailure(msg);
       }
       if (response.statusCode == 404) {
-        Object().logNet.warning('Not found: ${response.realUri}');
-        return const NotFoundFailure();
+        final msg = basicResponse?.error ?? basicResponse?.message;
+        Object().logNet.warning('Not found: ${response.realUri} ($msg)');
+        return NotFoundFailure(msg);
       }
       if (response.statusCode == 422) {
         Object().logNet.warning(

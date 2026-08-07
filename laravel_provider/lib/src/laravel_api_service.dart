@@ -1,12 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:skeleton/skeleton.dart';
 import 'package:laravel_provider/laravel_provider.dart';
+import 'package:core/core.dart';
 
 /// Base class for Laravel service implementations.
 /// Provides a standard way to handle async requests and map errors.
 ///
 /// ID type defaults to [int] for Laravel.
-abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implements BaseApiService<Model, EditRequest, SearchRequest, ID> {
+abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
+    implements BaseApiService<Model, EditRequest, SearchRequest, ID> {
   final Dio dio;
   final String? baseUrl;
 
@@ -30,27 +32,67 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
   /// Convert JSON to Model - must be implemented by concrete service
   Model modelFromJson(Map<String, dynamic> json);
 
-  BasicResponse<Model> basicFromJson(Map<String, dynamic> json) => BasicResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
-  
-  FullListResponse<Model> listFromJson(Map<String, dynamic> json) => FullListResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
-  
-  PaginationResponse<Model> pageFromJson(Map<String, dynamic> json) => PaginationResponse<Model>.fromJson(json, (p0) => modelFromJson(p0 as Map<String, dynamic>));
+  BasicResponse<Model> basicFromJson(Map<String, dynamic> json) =>
+      BasicResponse<Model>.fromJson(
+        json,
+        (p0) => modelFromJson(p0 as Map<String, dynamic>),
+      );
+
+  FullListResponse<Model> listFromJson(Map<String, dynamic> json) =>
+      FullListResponse<Model>.fromJson(
+        json,
+        (p0) => modelFromJson(p0 as Map<String, dynamic>),
+      );
+
+  PaginationResponse<Model> pageFromJson(Map<String, dynamic> json) =>
+      PaginationResponse<Model>.fromJson(
+        json,
+        (p0) => modelFromJson(p0 as Map<String, dynamic>),
+      );
 
   /// Convert Request to JSON - must be implemented by concrete service
   Map<String, dynamic> requestToJson(EditRequest request);
 
-
   /// Generic request and response transformer
-  Future<X> request<X>({String method = 'GET', String? suffixPath, Map<String, dynamic>? body, Map<String, dynamic>? params, required X Function(Map<String, dynamic>) fromJsonT}) async {
+  Future<X> request<X>({
+    String method = 'GET',
+    String? suffixPath,
+    Map<String, dynamic>? body,
+    Map<String, dynamic>? params,
+    required X Function(Map<String, dynamic>) fromJsonT,
+  }) async {
     return handle(() async {
       final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
-      final result = await superRequestTransform(dio: dio, path: path, method: method, baseUrl: baseUrl, fieldsAndFiles: body, queryParameters: params);
-      return fromJsonT(result.data!);
+      final result = await superRequestTransform(
+        dio: dio,
+        path: path,
+        method: method,
+        baseUrl: baseUrl,
+        fieldsAndFiles: body,
+        queryParameters: params,
+      );
+      final data = result.data;
+      _throwOnErrorEnvelope(data, result.statusCode);
+      return fromJsonT(data!);
     });
   }
 
+  /// Some Laravel APIs return an error envelope (`{"error": "..."}`) even
+  /// with a 2xx status. Treat it as a failure instead of parsing it as
+  /// success (which would silently produce empty/null payloads).
+  void _throwOnErrorEnvelope(Map<String, dynamic>? data, int? statusCode) {
+    final error = data?['error'];
+    if (error is String && error.trim().isNotEmpty) {
+      throw statusCode == 404 ? NotFoundFailure(error) : ServerFailure(error);
+    }
+  }
+
   @override
-  Future<ApiResponse<Model>> show({required ID id, SearchRequest? params, String? suffixPath}) async {
+  Future<ApiResponse<Model>> show({
+    required ID id,
+    SearchRequest? params,
+    String? suffixPath,
+  }) async {
     return request<ApiResponse<Model>>(
       suffixPath: suffixPath != null ? '/$id/$suffixPath' : '/$id',
       params: params is Jsonable ? params.toJson() : null,
@@ -59,7 +101,10 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
   }
 
   @override
-  Future<ApiResponse<List<Model>>> all({SearchRequest? params, String? suffixPath}) async {
+  Future<ApiResponse<List<Model>>> all({
+    SearchRequest? params,
+    String? suffixPath,
+  }) async {
     return request<ApiResponse<List<Model>>>(
       suffixPath: suffixPath,
       params: params is Jsonable ? params.toJson() : null,
@@ -68,7 +113,11 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
   }
 
   @override
-  Future<PaginationResponse<Model>> paging({required int page, SearchRequest? params, String? suffixPath}) async {
+  Future<PaginationResponse<Model>> paging({
+    required int page,
+    SearchRequest? params,
+    String? suffixPath,
+  }) async {
     final query = params is Jsonable ? params.toJson() : <String, dynamic>{};
     query['page'] = page;
     return request<PaginationResponse<Model>>(
@@ -79,10 +128,19 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
   }
 
   @override
-  Future<ApiResponse<ID>> create({required EditRequest body, String? suffixPath}) async {
+  Future<ApiResponse<ID>> create({
+    required EditRequest body,
+    String? suffixPath,
+  }) async {
     return handle(() async {
       final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
-      final result = await superRequestTransform(dio: dio, path: path, method: 'POST', baseUrl: baseUrl, fieldsAndFiles: requestToJson(body));
+      final result = await superRequestTransform(
+        dio: dio,
+        path: path,
+        method: 'POST',
+        baseUrl: baseUrl,
+        fieldsAndFiles: requestToJson(body),
+      );
       // Laravel often returns the ID or the whole model
       final data = result.data!['data'];
       final id = (data is Map ? data['id'] : data) as ID;
@@ -91,7 +149,11 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
   }
 
   @override
-  Future<ApiResponse<ID>> update({required ID id, required EditRequest body, String? suffixPath}) async {
+  Future<ApiResponse<ID>> update({
+    required ID id,
+    required EditRequest body,
+    String? suffixPath,
+  }) async {
     return request<ApiResponse<ID>>(
       method: 'PUT',
       suffixPath: suffixPath != null ? '/$id/$suffixPath' : '/$id',
@@ -101,7 +163,11 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
   }
 
   @override
-  Future<ApiResponse<ID>> delete({required ID id, SearchRequest? params, String? suffixPath}) async {
+  Future<ApiResponse<ID>> delete({
+    required ID id,
+    SearchRequest? params,
+    String? suffixPath,
+  }) async {
     return request<ApiResponse<ID>>(
       method: 'DELETE',
       suffixPath: suffixPath != null ? '/$id/$suffixPath' : '/$id',
@@ -111,7 +177,10 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
   }
 
   @override
-  Future<ApiResponse> manageRelations({required ID id, required dynamic data}) async {
+  Future<ApiResponse> manageRelations({
+    required ID id,
+    required dynamic data,
+  }) async {
     return request<ApiResponse>(
       method: 'POST',
       suffixPath: '/$id/relations',
@@ -126,11 +195,24 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID> implemen
   }
 
   @override
-  Future<ApiResponse<T>> callFunction<T>(String name, {Map<String, dynamic>? params}) async {
+  Future<ApiResponse<T>> callFunction<T>(
+    String name, {
+    Map<String, dynamic>? params,
+  }) async {
     return handle(() async {
-      final body = ActionRequest(action: name, type: resourceType, payload: params);
+      final body = ActionRequest(
+        action: name,
+        type: resourceType,
+        payload: params,
+      );
 
-      final result = await superRequestTransform(dio: dio, path: '/_action_', fieldsAndFiles: body.toJson(), method: 'POST', baseUrl: baseUrl);
+      final result = await superRequestTransform(
+        dio: dio,
+        path: '/_action_',
+        fieldsAndFiles: body.toJson(),
+        method: 'POST',
+        baseUrl: baseUrl,
+      );
 
       return BasicResponse<T>.fromJson(result.data!, (json) => json as T);
     });

@@ -56,16 +56,46 @@ abstract class MyBaseCubit<
   BaseState _mapErrorToState(dynamic e) {
     if (e is AuthFailure) {
       onAuthError();
-      return bs.error(error: e.message ?? 'Auth error');
+      return bs.error(error: e.message ?? 'auth_error'.i18n());
     } else if (e is ValidationFailure) {
       return bs.validation(e.errors);
     } else if (e is PermissionFailure) {
-      return bs.unauthorized(message: e.message ?? 'Permission denied');
+      return bs.unauthorized(message: _friendlyMessage(e));
     } else if (e is AppFailure) {
-      return bs.error(error: e.message ?? 'Unknown failure');
+      return bs.error(error: _friendlyMessage(e));
     }
 
-    return bs.error(error: e.toString());
+    return bs.error(error: 'error_occurred'.i18n());
+  }
+
+  /// Maps an [AppFailure] to a user-facing, localized message.
+  /// Backend-provided messages are kept only when they are user-facing;
+  /// technical exception/stack-trace text is replaced with a generic message.
+  String _friendlyMessage(AppFailure failure) {
+    if (failure is NetworkFailure) return 'network_error'.i18n();
+
+    final message = failure.message;
+    if (failure is NotFoundFailure) {
+      final isBlank = message == null || message.trim().isEmpty;
+      return isBlank || _looksTechnical(message)
+          ? 'resource_not_found'.i18n()
+          : message;
+    }
+
+    if (message == null || message.trim().isEmpty || _looksTechnical(message)) {
+      return 'error_occurred'.i18n();
+    }
+    return message;
+  }
+
+  /// Heuristic: messages that look like raw backend internals should never
+  /// be shown to the user verbatim.
+  bool _looksTechnical(String message) {
+    return message.contains('\\') ||
+        message.contains('Exception') ||
+        message.contains('SQLSTATE') ||
+        message.contains('No query results for model') ||
+        message.contains('<!DOCTYPE');
   }
 
   /// Listen for auth errors
