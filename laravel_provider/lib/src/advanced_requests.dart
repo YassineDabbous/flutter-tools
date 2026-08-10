@@ -73,9 +73,7 @@ Future<Response<Map<String, dynamic>>> superRequest({
   dynamic data;
   final isMultipart = (files != null && files.isNotEmpty);
 
-  if (method == 'GET' || method == 'DELETE') {
-    data = null;
-  } else if (isMultipart) {
+  if (isMultipart) {
     final formData = FormData.fromMap(fields ?? {}, ListFormat.multiCompatible);
 
     formData.files.addAll(files.entries);
@@ -85,6 +83,11 @@ Future<Response<Map<String, dynamic>>> superRequest({
       formData.fields.add(MapEntry("_method", method.toUpperCase()));
     }
     data = formData;
+  } else if (method == 'GET') {
+    data = null;
+  } else if (method == 'DELETE') {
+    // Allow a JSON body for DELETE (e.g. current_password confirmation).
+    data = (fields != null && fields.isNotEmpty) ? fields : null;
   } else {
     data = fields;
     // For simple POST/PUT/PATCH without files, we can use JSON
