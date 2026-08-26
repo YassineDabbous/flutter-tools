@@ -22,6 +22,7 @@ abstract class Config {
 
   // --- API & App Identity ---
   String get baseUrl => 'https://www.yaseen.dev/api/v1';
+  String get defaultCurrency => 'TND';
   int get appID => 1; // Used as default tenantID
   String get appSlogon => '';
   String get appLogo => 'assets/imgs/logo.png';
