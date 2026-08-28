@@ -18,10 +18,12 @@ class DioClientFactory {
     required Config config,
     required AuthLocalManager authManager,
     required SharedPrefHelper prefHelper,
+    Map<String, String> Function()? extraHeaders,
     bool debug = false,
   }) {
     final interceptors = [
       AuthInterceptor(config, authManager, prefHelper),
+      if (extraHeaders != null) ExtraHeadersInterceptor(extraHeaders),
       TokenRefreshInterceptor(authManager, dio),
       RetryInterceptor(dio),
       OfflineQueueInterceptor(),
