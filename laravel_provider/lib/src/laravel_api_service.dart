@@ -3,22 +3,41 @@ import 'package:skeleton/skeleton.dart';
 import 'package:laravel_provider/laravel_provider.dart';
 import 'package:core/core.dart';
 
+import 'advanced_requests.dart';
+
 /// Base class for Laravel service implementations.
 /// Provides a standard way to handle async requests and map errors.
 ///
+/// URL model:
+/// - [resource] is the bare noun used as default CRUD prefix (e.g. 'addresses').
+/// - [pathSegments] are prepended before [resource] (e.g. ['customer']).
+/// - [suffixPath] in any method is appended after [resource] (or replaces it
+///   when it starts with '/' for absolute paths, or starts with '../' for
+///   cross-prefix jumps).
+/// - [persona] is an optional convenience that defaults [pathSegments] to
+///   `[persona!]`.
+///
 /// ID type defaults to [int] for Laravel.
-abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
-    implements BaseApiService<Model, EditRequest, SearchRequest, ID> {
+abstract class LaravelApiService<Model, ID>
+    implements BaseApiService<Model, Map<String, dynamic>, Map<String, dynamic>, ID> {
   final Dio dio;
   final String? baseUrl;
+  final String? persona;
 
-  LaravelApiService(this.dio, {this.baseUrl});
+  LaravelApiService(this.dio, {this.baseUrl, this.persona});
 
-  /// The Laravel resource type (e.g., 'user', 'shipment').
-  /// Used for constructed ActionRequests.
-  String get resourceType; // => 'general';
+  /// Bare resource noun used as default URL prefix for CRUD verbs.
+  /// e.g. 'addresses', 'finance', 'subscriptions'.
+  String get resource;
 
-  String get endpoint;
+  /// Segments prepended before [resource] / [suffixPath]. e.g. ['customer'].
+  /// Defaults to `[persona!]` when [persona] is provided.
+  List<String> get pathSegments =>
+      persona != null ? [persona!] : const [];
+
+  /// Resource noun used by [callFunction] for the `type` field of ActionRequest.
+  /// Defaults to [resource].
+  String get resourceType => resource;
 
   /// Helper to catch exceptions and map them to Failures.
   Future<T> handle<T>(Future<T> Function() call) async {
@@ -50,10 +69,45 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
         (p0) => modelFromJson(p0 as Map<String, dynamic>),
       );
 
-  /// Convert Request to JSON - must be implemented by concrete service
-  Map<String, dynamic> requestToJson(EditRequest request);
+  /// Convert Request to JSON - must be implemented by concrete service.
+  /// Concrete services typically return the map as-is since the default
+  /// [EditRequest] type is [Map].
+  Map<String, dynamic> requestToJson(Map<String, dynamic> request);
 
-  /// Generic request and response transformer
+  /// Compose the request URL from [pathSegments] + [resource] (+ [suffixPath]).
+  ///
+  /// Three modes:
+  /// - [suffixPath] starting with '/' → absolute, [pathSegments] skipped.
+  /// - [suffixPath] starting with '../' → cross-prefix, pops one segment then
+  ///   appends the remainder.
+  /// - Otherwise → normal: [pathSegments] + [resource] (+ [suffixPath]).
+  String _buildPath({String? suffixPath, String? resourceOverride}) {
+    if (suffixPath != null && suffixPath.startsWith('/')) {
+      return suffixPath;
+    }
+
+    if (suffixPath != null && suffixPath.startsWith('../')) {
+      if (pathSegments.isEmpty) {
+        throw ArgumentError(
+          '"../" requires at least one pathSegment '
+          '(got pathSegments=$pathSegments, suffixPath=$suffixPath)',
+        );
+      }
+      final popped = [...pathSegments]..removeLast();
+      return '/${[...popped, ...suffixPath.substring(3).split('/')].join('/')}';
+    }
+
+    final segs = <String>[
+      ...pathSegments,
+      if (resourceOverride != null) resourceOverride else resource,
+      if (suffixPath != null) ...suffixPath.split('/'),
+    ];
+    return '/${segs.where((s) => s.isNotEmpty).join('/')}';
+  }
+
+  /// Generic request and response transformer.
+  ///
+  /// [suffixPath] modes: see [_buildPath].
   Future<X> request<X>({
     String method = 'GET',
     String? suffixPath,
@@ -62,18 +116,16 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
     required X Function(Map<String, dynamic>) fromJsonT,
   }) async {
     return handle(() async {
-      final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
       final result = await superRequestTransform(
         dio: dio,
-        path: path,
+        path: _buildPath(suffixPath: suffixPath),
         method: method,
         baseUrl: baseUrl,
         fieldsAndFiles: body,
         queryParameters: params,
       );
-      final data = result.data;
-      _throwOnErrorEnvelope(data, result.statusCode);
-      return fromJsonT(data!);
+      _throwOnErrorEnvelope(result.data, result.statusCode);
+      return fromJsonT(result.data!);
     });
   }
 
@@ -90,24 +142,24 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
   @override
   Future<ApiResponse<Model>> show({
     required ID id,
-    SearchRequest? params,
+    Map<String, dynamic>? params,
     String? suffixPath,
   }) async {
     return request<ApiResponse<Model>>(
       suffixPath: suffixPath != null ? '/$id/$suffixPath' : '/$id',
-      params: params is Jsonable ? params.toJson() : null,
+      params: params,
       fromJsonT: basicFromJson,
     );
   }
 
   @override
   Future<ApiResponse<List<Model>>> all({
-    SearchRequest? params,
+    Map<String, dynamic>? params,
     String? suffixPath,
   }) async {
     return request<ApiResponse<List<Model>>>(
       suffixPath: suffixPath,
-      params: params is Jsonable ? params.toJson() : null,
+      params: params,
       fromJsonT: listFromJson,
     );
   }
@@ -115,10 +167,10 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
   @override
   Future<PaginationResponse<Model>> paging({
     required int page,
-    SearchRequest? params,
+    Map<String, dynamic>? params,
     String? suffixPath,
   }) async {
-    final query = params is Jsonable ? params.toJson() : <String, dynamic>{};
+    final query = params ?? <String, dynamic>{};
     query['page'] = page;
     return request<PaginationResponse<Model>>(
       suffixPath: suffixPath,
@@ -129,29 +181,25 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
 
   @override
   Future<ApiResponse<ID>> create({
-    required EditRequest body,
+    required Map<String, dynamic> body,
     String? suffixPath,
-  }) async {
-    return handle(() async {
-      final path = suffixPath != null ? '/$endpoint/$suffixPath' : '/$endpoint';
-      final result = await superRequestTransform(
-        dio: dio,
-        path: path,
-        method: 'POST',
-        baseUrl: baseUrl,
-        fieldsAndFiles: requestToJson(body),
-      );
-      // Laravel often returns the ID or the whole model
-      final data = result.data!['data'];
-      final id = (data is Map ? data['id'] : data) as ID;
-      return ApiResponse(data: id);
-    });
+  }) {
+    return request<ApiResponse<ID>>(
+      method: 'POST',
+      suffixPath: suffixPath,
+      body: requestToJson(body),
+      fromJsonT: (p0) {
+        final data = p0['data'];
+        final id = (data is Map ? data['id'] : data) as ID;
+        return ApiResponse(data: id);
+      },
+    );
   }
 
   @override
   Future<ApiResponse<ID>> update({
     required ID id,
-    required EditRequest body,
+    required Map<String, dynamic> body,
     String? suffixPath,
   }) async {
     return request<ApiResponse<ID>>(
@@ -165,13 +213,13 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
   @override
   Future<ApiResponse<ID>> delete({
     required ID id,
-    SearchRequest? params,
+    Map<String, dynamic>? params,
     String? suffixPath,
   }) async {
     return request<ApiResponse<ID>>(
       method: 'DELETE',
       suffixPath: suffixPath != null ? '/$id/$suffixPath' : '/$id',
-      params: params is Jsonable ? params.toJson() : null,
+      params: params,
       fromJsonT: (p0) => ApiResponse(data: id),
     );
   }
@@ -190,7 +238,7 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
   }
 
   @override
-  Stream<List<Model>> stream({required SearchRequest data}) {
+  Stream<List<Model>> stream({required Map<String, dynamic> data}) {
     throw UnimplementedError('Streaming not supported for Laravel yet');
   }
 
@@ -208,12 +256,13 @@ abstract class LaravelApiService<Model, EditRequest, SearchRequest, ID>
 
       final result = await superRequestTransform(
         dio: dio,
-        path: '/_action_',
+        path: _buildPath(suffixPath: '/_action_'),
         fieldsAndFiles: body.toJson(),
         method: 'POST',
         baseUrl: baseUrl,
       );
 
+      _throwOnErrorEnvelope(result.data, result.statusCode);
       return BasicResponse<T>.fromJson(result.data!, (json) => json as T);
     });
   }
