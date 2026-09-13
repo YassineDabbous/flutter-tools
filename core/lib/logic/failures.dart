@@ -31,6 +31,10 @@ class ServerFailure extends AppFailure {
   const ServerFailure([super.message = 'Internal server error.']);
 }
 
+class ConflictFailure extends AppFailure {
+  const ConflictFailure([super.message = 'Conflict error.']);
+}
+
 class NotFoundFailure extends AppFailure {
   const NotFoundFailure([super.message = 'Resource not found.']);
 }

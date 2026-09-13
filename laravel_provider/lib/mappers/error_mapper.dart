@@ -51,6 +51,11 @@ class LaravelErrorMapper {
           message: basicResponse?.message,
         );
       }
+      if (response.statusCode == 409) {
+        final msg = basicResponse?.error ?? basicResponse?.message;
+        Object().logNet.warning('Conflict: $msg');
+        return ConflictFailure(msg);
+      }
 
       if (response.statusCode! >= 500) {
         final msg =
