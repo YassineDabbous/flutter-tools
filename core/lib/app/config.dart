@@ -53,4 +53,11 @@ abstract class Config {
   String? get pusherHost => null;
   int? get pusherPort => null;
   String? get pusherScheme => null;
+
+  // Laravel's default `POST /broadcasting/auth` lives OUTSIDE the `/api/v1`
+  // prefix baked into [baseUrl]. Derive the origin by stripping the version
+  // segment so socket auth hits nginx on port 80 (`http://host/broadcasting/auth`),
+  // not `http://host/api/v1/broadcasting/auth` (404).
+  String get broadcastingAuthUrl =>
+      '${baseUrl.replaceFirst(RegExp(r'/api/v1/?$'), '')}/broadcasting/auth';
 }
