@@ -4,6 +4,7 @@ export 'geo/geo.dart';
 export 'display/display.dart';
 export 'scroll/scroll.dart';
 export 'inputs/inputs.dart';
+export 'countdown/countdown.dart';
 
 export 'snackbar.dart';
 
