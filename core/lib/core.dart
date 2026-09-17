@@ -1,5 +1,9 @@
 export 'main.dart';
 export 'utils/result.dart';
+export 'utils/json.dart';
+export 'utils/money.dart';
+export 'utils/clock.dart';
+export 'utils/versions.dart';
 
 export 'app/app.dart';
 export 'app/module_config.dart';
