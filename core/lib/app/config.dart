@@ -27,7 +27,7 @@ abstract class Config {
   String get appSlogon => '';
   String get appLogo => 'assets/imgs/logo.png';
   String get appName => 'no NAME';
-  String get appVersionNumber => '0.0';
+  String get appVersionNumber => '1.0.0';
 
   // --- External Links ---
   String get kLinkAboutUs => 'http://www.yaseen.dev/';
