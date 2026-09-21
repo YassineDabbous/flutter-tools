@@ -28,7 +28,7 @@ class BasicResponse<T> extends ApiResponse<T> {
 }
 
 class FullListResponse<T> extends BasicResponse<List<T>> {
-  FullListResponse({super.data, super.message,  super.error, super.code});
+  FullListResponse({super.data, super.message, super.error, super.code});
 
   factory FullListResponse.fromJson(
     dynamic json,
@@ -46,14 +46,15 @@ class FullListResponse<T> extends BasicResponse<List<T>> {
 }
 
 class PaginationResponse<T> extends BasicResponse<LaravelPaginator<T>> {
-  PaginationResponse({super.data, super.message,  super.error, super.code});
+  PaginationResponse({super.data, super.message, super.error, super.code});
 
   factory PaginationResponse.fromJson(
     dynamic json,
     T Function(dynamic json) fromJsonT,
   ) {
     final map = json as Map<String, dynamic>;
-    final paginatorMap = (map.containsKey('code') && map['data'] is Map<String, dynamic>)
+    final paginatorMap =
+        (map.containsKey('code') && map['data'] is Map<String, dynamic>)
         ? map['data'] as Map<String, dynamic>
         : map;
     return PaginationResponse<T>(
@@ -64,15 +65,34 @@ class PaginationResponse<T> extends BasicResponse<LaravelPaginator<T>> {
   }
 }
 
-
-
 class LaravelPaginator<T> extends PaginatedList<T> {
+  final int hasMore;
+
   LaravelPaginator({
     required super.data,
     required super.total,
     required super.perPage,
     required super.currentPage,
+    this.hasMore = 0,
   });
+
+  bool get hasMoreBool => hasMore != 0;
+
+  static int _hasMoreFromJson(dynamic value) {
+    if (value == null) return 0;
+    if (value is bool) return value ? 1 : 0;
+    if (value is num) return value != 0 ? 1 : 0;
+    final s = value.toString().toLowerCase().trim();
+    if (s == '1' || s == 'true') return 1;
+    return 0;
+  }
+
+  static int _intFromJson(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString()) ?? 0;
+  }
 
   factory LaravelPaginator.fromJson(
     dynamic json,
@@ -87,9 +107,12 @@ class LaravelPaginator<T> extends PaginatedList<T> {
 
     return LaravelPaginator<T>(
       data: dataList,
-      total: meta['total'] as int? ?? 0,
-      perPage: meta['per_page'] as int? ?? 15,
-      currentPage: meta['current_page'] as int? ?? 1,
+      total: meta['total'] != null ? _intFromJson(meta['total']) : 0,
+      perPage: meta['per_page'] != null ? _intFromJson(meta['per_page']) : 15,
+      currentPage: meta['current_page'] != null
+          ? _intFromJson(meta['current_page'])
+          : 1,
+      hasMore: _hasMoreFromJson(meta['has_more']),
     );
   }
 
