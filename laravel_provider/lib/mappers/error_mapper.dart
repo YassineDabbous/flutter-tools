@@ -33,7 +33,12 @@ class LaravelErrorMapper {
         return const AuthFailure();
       }
       if (response.statusCode == 403) {
-        final msg = basicResponse?.message ?? 'Forbidden';
+        // Prefer the `error` field: gates return `{"error": "...", "data":
+        // {"code": "KYC_REQUIRED"|...}}` with no `message` (previously this
+        // fell through to null → generic). Still user-facing text only —
+        // `_friendlyMessage` strips anything technical downstream.
+        final msg =
+            basicResponse?.error ?? basicResponse?.message ?? 'Forbidden';
         Object().logNet.warning('Permission denied: $msg');
         return PermissionFailure(msg);
       }
