@@ -5,3 +5,4 @@ export 'base_action.dart';
 export 'bloc/bloc.dart';
 export 'jsonable.dart';
 export 'dynamic_query_request.dart';
+export 'dynamic_query_operators.dart';
