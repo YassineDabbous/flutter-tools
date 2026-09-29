@@ -5,6 +5,8 @@ import 'package:core/core.dart';
 import 'package:skeleton/skeleton.dart';
 
 abstract class MyBaseState<StateType> extends Equatable {
+  const MyBaseState();
+
   @override
   List<Object> get props => [];
   StateType get initial;

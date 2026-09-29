@@ -67,6 +67,11 @@ mixin PaginationCubit<
   /// Guard to prevent concurrent paging requests
   bool _isMoving = false;
 
+  /// Generation counter: [refresh]/[refreshAll] bump it. A [move] whose
+  /// generation is stale drops its result (and triggers the pending
+  /// generation) instead of appending stale rows to a cleared list.
+  int _requestGen = 0;
+
   /// How to handle new data pages.
   PagingMode pagingMode = PagingMode.paginated;
 
@@ -148,6 +153,7 @@ mixin PaginationCubit<
   Future move({bool back = false, int? toPage}) async {
     if (_isMoving) return;
     int aux = page;
+    final int gen = _requestGen;
     _isMoving = true;
     try {
       if (toPage != null) {
@@ -160,6 +166,9 @@ mixin PaginationCubit<
       }
       emit(bs.pageLoading);
       final p = await load();
+      // Superseded by refresh(): drop the stale result (page/filter were
+      // reset); finally-block runs the pending generation.
+      if (gen != _requestGen) return;
       total = p.total;
       perPage = p.perPage;
       final l = p.data;
@@ -167,36 +176,55 @@ mixin PaginationCubit<
         lista.clear();
         lista.addAll(l);
       } else {
-        // Prevent duplicates in infinite scroll
-        final existingIds = lista.map((e) {
-          if (e is Identifiable) return e.id;
-          try {
-            return (e as dynamic).id;
-          } catch (_) {
-            return e.hashCode;
-          }
-        }).toSet();
+        // Prevent duplicates in infinite scroll. The key extraction MUST be
+        // identical in both places (and never throw): Map rows have no `.id`
+        // getter — a bare `(item as dynamic).id` throws NoSuchMethodError.
+        final existingIds = lista.map(_keyOf).toSet();
 
         for (final item in l) {
-          final dynamic id = item is Identifiable
-              ? item.id
-              : (item as dynamic).id;
-          if (!existingIds.contains(id)) {
+          if (!existingIds.contains(_keyOf(item))) {
             lista.add(item);
           }
         }
       }
-      maxReached = l.isEmpty;
+      // Simple paginators can end on a full page with no cursor left —
+      // `hasMorePages` lets cubits stop without an extra empty request.
+      maxReached = !hasMorePages(p);
       emit(bs.pageLoaded(data: l, maxReached: maxReached, nextPage: page));
     } catch (e) {
-      if (toPage != null) {
-        page = aux;
-      } else {
-        back ? page++ : page--;
+      // Skip rollback + error emit when superseded: the page/filter were
+      // reset by refresh(), which reloads in the finally-block.
+      if (gen == _requestGen) {
+        if (toPage != null) {
+          page = aux;
+        } else {
+          back ? page++ : page--;
+        }
+        emit(mapErrorToState(e));
       }
-      emit(mapErrorToState(e));
     } finally {
       _isMoving = false;
+      // A refresh() that landed mid-flight no-ops its own move on the guard
+      // above; run the pending generation now so the list never stalls empty.
+      if (gen != _requestGen) await loadNext();
+    }
+  }
+
+  /// Whether more pages exist after [p]. Default is "non-empty page"; override
+  /// for cursor paginators (e.g. `LaravelPaginator.hasMoreBool`), otherwise a
+  /// full last page costs one extra empty request.
+  @protected
+  bool hasMorePages(PaginatedList<Model> p) => p.data.isNotEmpty;
+
+  /// Identity key for infinite-scroll dedup. Maps use `id`/`uuid` keys so a
+  /// data shift across pages doesn't duplicate rows (hashCode fallback).
+  static dynamic _keyOf(dynamic item) {
+    if (item is Identifiable) return item.id;
+    if (item is Map) return item['id'] ?? item['uuid'] ?? item.hashCode;
+    try {
+      return (item as dynamic).id;
+    } catch (_) {
+      return item.hashCode;
     }
   }
 
@@ -204,6 +232,7 @@ mixin PaginationCubit<
   @mustCallSuper
   Future refresh({SearchFilter? filter}) async {
     _debounceTimer?.cancel();
+    _requestGen++;
     lista.clear();
     page = 0;
     maxReached = false;
@@ -286,6 +315,7 @@ mixin PaginationCubit<
   // Reset and get all resources
   @mustCallSuper
   Future refreshAll({SearchFilter? filter}) async {
+    _requestGen++;
     lista.clear();
     page = 0;
     maxReached = false;

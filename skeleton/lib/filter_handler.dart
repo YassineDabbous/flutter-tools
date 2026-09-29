@@ -3,7 +3,7 @@ import 'package:skeleton/skeleton.dart';
 
 abstract class FilterForm<
   TRequest extends SuperModel<TRequest>,
-  TModel extends Jsonable,
+  TModel,
   TController extends BaseController<TRequest, TModel, ID>,
   ID
 >
@@ -21,7 +21,7 @@ abstract class FilterForm<
 
 mixin FilterHandler<
   TRequest extends SuperModel<TRequest>,
-  TModel extends Jsonable,
+  TModel,
   TController extends BaseController<TRequest, TModel, ID>,
   ID
 >
