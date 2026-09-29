@@ -25,7 +25,7 @@ Map<String, dynamic> _$StatisticsResponseToJson(StatisticsResponse instance) =>
     };
 
 StatMeta _$StatMetaFromJson(Map<String, dynamic> json) => StatMeta(
-  metric: json['metric'] as String,
+  metric: StatMetric.fromJson(json['metric'] as Map<String, dynamic>),
   currency: json['currency'] as String?,
   timezone: json['timezone'] as String?,
   granularity: json['granularity'],
@@ -37,6 +37,19 @@ Map<String, dynamic> _$StatMetaToJson(StatMeta instance) => <String, dynamic>{
   'timezone': instance.timezone,
   'granularity': instance.granularity,
 };
+
+StatMetric _$StatMetricFromJson(Map<String, dynamic> json) => StatMetric(
+  raw: json['raw'] as String,
+  type: json['type'] as String,
+  field: json['field'] as String?,
+);
+
+Map<String, dynamic> _$StatMetricToJson(StatMetric instance) =>
+    <String, dynamic>{
+      'raw': instance.raw,
+      'type': instance.type,
+      'field': instance.field,
+    };
 
 StatsSummary _$StatsSummaryFromJson(Map<String, dynamic> json) => StatsSummary(
   value: (json['value'] as num).toDouble(),

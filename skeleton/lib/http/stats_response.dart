@@ -18,7 +18,7 @@ class StatisticsResponse {
 
 @JsonSerializable()
 class StatMeta {
-  final String metric;
+  final StatMetric metric;
   final String? currency;
   final String? timezone;
   final dynamic granularity;
@@ -33,6 +33,31 @@ class StatMeta {
   factory StatMeta.fromJson(Map<String, dynamic> json) =>
       _$StatMetaFromJson(json);
   Map<String, dynamic> toJson() => _$StatMetaToJson(this);
+}
+
+/// Parsed `_metric` descriptor (`laravel-dynamic-query` `dynamicStatsAPI`).
+///
+/// The backend sends an object (`{raw, type, field}`), never the raw query
+/// string — typed here after the `String` version threw
+/// `type '_Map<String, dynamic>' is not a subtype of type 'String'` on the
+/// first real stats payload.
+@JsonSerializable()
+class StatMetric {
+  /// The metric as requested (`sum:grand_total`, `count`).
+  final String raw;
+
+  /// Aggregate type (`count`, `sum`, `avg`, `min`, `max`, or a custom name
+  /// from the model's `dynamicMetrics()`).
+  final String type;
+
+  /// Aggregated column, if any (`sum:grand_total` → `grand_total`).
+  final String? field;
+
+  StatMetric({required this.raw, required this.type, this.field});
+
+  factory StatMetric.fromJson(Map<String, dynamic> json) =>
+      _$StatMetricFromJson(json);
+  Map<String, dynamic> toJson() => _$StatMetricToJson(this);
 }
 
 @JsonSerializable(explicitToJson: true)
