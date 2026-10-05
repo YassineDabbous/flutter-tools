@@ -64,6 +64,10 @@ class Agent {
     required LLM llm,
     required String name,
     required String role,
+
+    /// Inline system prompt. When provided, [pathToSystemData] is ignored and
+    /// no asset bundle is touched (pure-Dart friendly).
+    Map<String, dynamic>? systemData,
     String pathToSystemData = 'assets/system_data.json',
     FailureMode failureMode = FailureMode.gracefulMessage,
     void Function(YaseenAiAgentException error, StackTrace stack)? onError,
@@ -78,7 +82,8 @@ class Agent {
     int summarizationBatchSize = 0,
   }) async {
     final resolvedScope = scope ?? AgentScope.global;
-    final systemData = await _loadSystemData(pathToSystemData);
+    final resolvedSystemData =
+        systemData ?? await _loadSystemData(pathToSystemData);
     final registry = ToolRegistry();
     final agent = Agent._internal(
       llm: llm,
@@ -88,7 +93,7 @@ class Agent {
         summarizationBatchSize: summarizationBatchSize,
       ),
       promptBuilder: _PromptBuilder(
-        systemPrompt: systemData,
+        systemPrompt: resolvedSystemData,
         registry: registry,
         scope: resolvedScope,
       ),
@@ -228,8 +233,9 @@ class Agent {
             content: response,
             isFromAgent: true,
             generatedAt: DateTime.now(),
-            data:
-                observations.isNotEmpty ? {'observations': observations} : null,
+            data: observations.isNotEmpty
+                ? {'observations': observations}
+                : null,
           );
 
         case ParseOutcome.agentsChain:
@@ -262,24 +268,21 @@ class Agent {
           if (remaining.isEmpty) {
             // Model re-requested only already-attempted tools. Return with
             // whatever we have so we don't burn more LLM calls.
-            final successMessages =
-                observations
-                    .where((o) => o['success'] == true)
-                    .map((o) => (o['message'] ?? '').toString())
-                    .where((m) => m.isNotEmpty)
-                    .toList();
-            final content =
-                successMessages.isNotEmpty
-                    ? successMessages.join('\n')
-                    : kLLMResponseOnFailure;
+            final successMessages = observations
+                .where((o) => o['success'] == true)
+                .map((o) => (o['message'] ?? '').toString())
+                .where((m) => m.isNotEmpty)
+                .toList();
+            final content = successMessages.isNotEmpty
+                ? successMessages.join('\n')
+                : kLLMResponseOnFailure;
             return AgentMessage(
               content: content,
               isFromAgent: true,
               generatedAt: DateTime.now(),
-              data:
-                  observations.isNotEmpty
-                      ? {'observations': observations}
-                      : null,
+              data: observations.isNotEmpty
+                  ? {'observations': observations}
+                  : null,
             );
           }
 
@@ -479,10 +482,9 @@ class Agent {
         chainDepth: depth + 1,
       );
 
-      inputForNextStep =
-          agentResponse.data != null
-              ? json.encode(agentResponse.data)
-              : agentResponse.content;
+      inputForNextStep = agentResponse.data != null
+          ? json.encode(agentResponse.data)
+          : agentResponse.content;
     }
 
     return agentResponse!;
@@ -519,16 +521,15 @@ class Agent {
     String originalPrompt,
     List<ToolResponse> toolResponses,
   ) async {
-    final toolData =
-        toolResponses
-            .map(
-              (r) => {
-                'tool': r.toolName,
-                'message': r.message,
-                if (r.data != null) 'data': r.data,
-              },
-            )
-            .toList();
+    final toolData = toolResponses
+        .map(
+          (r) => {
+            'tool': r.toolName,
+            'message': r.message,
+            if (r.data != null) 'data': r.data,
+          },
+        )
+        .toList();
 
     final raw = await llm.generate(
       prompt:

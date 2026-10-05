@@ -54,16 +54,15 @@ class _PromptBuilder {
     // --- Available tools (as a JSON array) ---
     final tools = registry.getAllTools();
     if (tools.isNotEmpty) {
-      final toolSpecs =
-          tools
-              .map(
-                (tool) => {
-                  'name': tool.name,
-                  'description': tool.description,
-                  'parameters': tool.parameters.map((e) => e.toJson()).toList(),
-                },
-              )
-              .toList();
+      final toolSpecs = tools
+          .map(
+            (tool) => {
+              'name': tool.name,
+              'description': tool.description,
+              'parameters': tool.parameters.map((e) => e.toJson()).toList(),
+            },
+          )
+          .toList();
       buffer.writeln('Available Tools: ${json.encode(toolSpecs)}\n');
     } else {
       buffer.writeln('Available Tools: none\n');

@@ -1,17 +1,19 @@
 name: yaseen_ai_agent
-description: A new Flutter package project.
+description: "Generic multi-provider AI agent runtime (Gemini, OpenAI-compatible, Ollama) with tool-calling, approvals, streaming and memory. Backend-agnostic building block for Rebelo assistant modules."
 version: 0.0.1
 homepage:
 publish_to: none
 
 environment:
   sdk: ^3.12.0
+  flutter: ">=3.0.0"
 
 resolution: workspace
 
 dependencies:
   flutter:
     sdk: flutter
+  # TODO(phase-1): delete with the _gemini.dart Dio-REST rewrite.
   google_generative_ai: ^0.4.7
   uuid: ^4.6.0
   dio: ^5.11.1

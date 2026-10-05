@@ -5,8 +5,6 @@
 
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
-
 /// Represents the response from a tool executed by the agent.
 class ToolResponse {
   /// The name of the tool that generated this response.
@@ -95,7 +93,18 @@ class ToolResponse {
         other.isRequestSuccessful == isRequestSuccessful &&
         other.message == message &&
         other.needsFurtherReasoning == needsFurtherReasoning &&
-        mapEquals(other.data, data);
+        _mapsEqual(other.data, data);
+  }
+
+  /// Pure-Dart shallow map equality (no flutter dependency).
+  static bool _mapsEqual(Map<String, dynamic>? a, Map<String, dynamic>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return false;
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (!b.containsKey(key) || b[key] != a[key]) return false;
+    }
+    return true;
   }
 
   @override

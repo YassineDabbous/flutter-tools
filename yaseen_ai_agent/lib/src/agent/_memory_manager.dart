@@ -65,8 +65,10 @@ class _MemoryManager {
       );
 
       final newlyEvictedCount = evictedZoneEnd - cursor;
-      final newlyEvicted =
-          fromCursor.take(newlyEvictedCount).where((m) => !m.isError).toList();
+      final newlyEvicted = fromCursor
+          .take(newlyEvictedCount)
+          .where((m) => !m.isError)
+          .toList();
 
       _evictionCursor[convoId] = evictedZoneEnd;
 
@@ -100,13 +102,12 @@ class _MemoryManager {
         .join('\n');
 
     final existing = _rollingContext[convoId];
-    final prompt =
-        existing != null
-            ? 'You have an existing summary of an earlier conversation:\n$existing\n\n'
-                'Extend it by incorporating these newer messages into one updated concise summary:\n$historyText'
-            : 'Summarize the following conversation messages into one concise paragraph '
-                'that preserves key facts, context, and decisions for future reference:\n\n'
-                '$historyText';
+    final prompt = existing != null
+        ? 'You have an existing summary of an earlier conversation:\n$existing\n\n'
+              'Extend it by incorporating these newer messages into one updated concise summary:\n$historyText'
+        : 'Summarize the following conversation messages into one concise paragraph '
+              'that preserves key facts, context, and decisions for future reference:\n\n'
+              '$historyText';
 
     try {
       final result = await _llm.generate(prompt: prompt);

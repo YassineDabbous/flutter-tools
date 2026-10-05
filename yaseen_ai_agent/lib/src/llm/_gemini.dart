@@ -46,8 +46,9 @@ class Gemini extends LLM {
     apiKey: _apiKey,
     generationConfig: _genConfig(),
     safetySettings: _safety ?? const [],
-    systemInstruction:
-        systemInstruction != null ? Content.system(systemInstruction) : null,
+    systemInstruction: systemInstruction != null
+        ? Content.system(systemInstruction)
+        : null,
   );
 
   @override
@@ -59,12 +60,11 @@ class Gemini extends LLM {
   }) async {
     try {
       final model = _buildModel(systemInstruction);
-      final content =
-          rawData == null
-              ? [Content.text(prompt)]
-              : [
-                Content.multi([TextPart(prompt), DataPart(mimeType, rawData)]),
-              ];
+      final content = rawData == null
+          ? [Content.text(prompt)]
+          : [
+              Content.multi([TextPart(prompt), DataPart(mimeType, rawData)]),
+            ];
       final response = await model
           .generateContent(content)
           .timeout(_config.timeout);

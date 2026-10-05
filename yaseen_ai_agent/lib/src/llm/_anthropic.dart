@@ -83,8 +83,9 @@ class Anthropic extends LLM {
     } on DioException catch (e, st) {
       final status = e.response?.statusCode;
       final body = e.response?.data;
-      final detail =
-          body is Map ? (body['error']?['message'] ?? body['message']) : null;
+      final detail = body is Map
+          ? (body['error']?['message'] ?? body['message'])
+          : null;
       final msg =
           'Anthropic call failed: ${detail ?? e.message} (status $status)';
       if (status == 429) {

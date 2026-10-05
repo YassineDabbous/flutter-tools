@@ -3,8 +3,7 @@
 // It supports text content, timestamps, agent identification, and optional image data or URL.
 
 import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 
 /// Represents a message in a conversation, either from the agent or the user.
 /// It can optionally contain an image (as binary data or a URL).
@@ -117,11 +116,32 @@ class AgentMessage {
     return other.content == content &&
         other.generatedAt == generatedAt &&
         other.isFromAgent == isFromAgent &&
-        listEquals(other.imageData, imageData) &&
+        _bytesEqual(other.imageData, imageData) &&
         other.mimeType == mimeType &&
         other.imageUrl == imageUrl &&
-        mapEquals(other.data, data) &&
+        _mapsEqual(other.data, data) &&
         other.isError == isError;
+  }
+
+  /// Pure-Dart equality helpers (no flutter dependency).
+  static bool _bytesEqual(Uint8List? a, Uint8List? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return false;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  static bool _mapsEqual(Map<String, dynamic>? a, Map<String, dynamic>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return false;
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (!b.containsKey(key) || b[key] != a[key]) return false;
+    }
+    return true;
   }
 
   /// Hash code based on all fields
