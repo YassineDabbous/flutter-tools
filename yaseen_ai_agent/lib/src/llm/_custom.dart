@@ -33,7 +33,7 @@ typedef LlmStreamFn =
 /// Structured-messages callback backing [DelegatingLLM.generateWithMessages].
 typedef LlmMessagesGenerateFn =
     Future<String> Function({
-      required List<Map<String, String>> messages,
+      required List<Map<String, dynamic>> messages,
       Uint8List? rawData,
       String mimeType,
       List<Tool>? tools,
@@ -43,7 +43,7 @@ typedef LlmMessagesGenerateFn =
 /// [DelegatingLLM.generateStreamWithMessages].
 typedef LlmMessagesStreamFn =
     Stream<String> Function({
-      required List<Map<String, String>> messages,
+      required List<Map<String, dynamic>> messages,
       Uint8List? rawData,
       String mimeType,
       List<Tool>? tools,
@@ -51,13 +51,15 @@ typedef LlmMessagesStreamFn =
 
 /// Flattens structured `role`/`content` messages into the legacy
 /// `(systemInstruction, prompt)` pair. `system` roles merge into the
-/// instruction; everything else renders as `role: content` lines.
+/// instruction; everything else renders as `role: content` lines. Non-string
+/// extras (e.g. `tool_call_id`) are dropped by flattening — structured
+/// providers read them directly instead.
 ({String system, String prompt}) flattenChatMessages(
-  List<Map<String, String>> messages,
+  List<Map<String, dynamic>> messages,
 ) {
   final system = [
     for (final m in messages)
-      if (m['role'] == 'system') (m['content'] ?? ''),
+      if (m['role'] == 'system') '${m['content'] ?? ''}',
   ].where((s) => s.isNotEmpty).join('\n\n');
   final prompt = [
     for (final m in messages)
@@ -174,7 +176,7 @@ class DelegatingLLM extends LLM {
 
   @override
   Future<String> generateWithMessages({
-    required List<Map<String, String>> messages,
+    required List<Map<String, dynamic>> messages,
     Uint8List? rawData,
     String mimeType = 'image/jpeg',
     List<Tool>? tools,
@@ -200,7 +202,7 @@ class DelegatingLLM extends LLM {
 
   @override
   Stream<String> generateStreamWithMessages({
-    required List<Map<String, String>> messages,
+    required List<Map<String, dynamic>> messages,
     Uint8List? rawData,
     String mimeType = 'image/jpeg',
     List<Tool>? tools,

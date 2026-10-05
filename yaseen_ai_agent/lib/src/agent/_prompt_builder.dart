@@ -210,13 +210,17 @@ RULES:
     );
 
     // --- Chat history (excludes error messages; oldest dropped under budget) ---
+    // Tool outcomes render as `Tool <name>:` lines so later turns keep the
+    // context that the wire path replays as `tool_result` messages.
     final historyLines = <String>[];
     if (memoryMessages != null && memoryMessages.isNotEmpty) {
       historyLines.add('Chat History:');
       for (final msg in memoryMessages) {
         if (msg.isError) continue;
         historyLines.add(
-          "${msg.isFromAgent ? 'Chatbot' : 'User'}: ${msg.content}",
+          msg.toolName != null
+              ? 'Tool ${msg.toolName}: ${msg.content}'
+              : "${msg.isFromAgent ? 'Chatbot' : 'User'}: ${msg.content}",
         );
       }
     }
@@ -265,15 +269,16 @@ RULES:
   /// head/middle blocks as `system` messages, recent history as
   /// `user`/`assistant` messages, [tail] as the final `user` message.
   ///
-  /// Enforces the wire limits — at most [kWireMaxMessages] messages, at most
-  /// [kWireMaxChars] characters per message:
+  /// Enforces the wire limits ([kWireMaxMessages], [kWireMaxChars],
+  /// [kWireTotalChars] — single source in `_pkg_constants.dart`):
   /// - system text is chunked at line boundaries (nothing is lost; models
   ///   concatenate consecutive system messages);
-  /// - oldest history drops first to fit the count;
+  /// - oldest history drops first to fit the count, then the total budget;
+  /// - empty-content history lines are skipped (content min 1 char);
   /// - oversized `user`/`assistant` content (history or [tail]) throws
   ///   [ConfigException] before any HTTP call — loud in dev logs instead of
   ///   a server 422 or a silent cut.
-  List<Map<String, String>> buildWireMessages({
+  List<Map<String, dynamic>> buildWireMessages({
     List<AgentMessage>? memoryMessages,
     String? contextSummary,
     required String systemInstruction,
@@ -285,15 +290,31 @@ RULES:
         '$systemInstruction\n\n${_headString(contextSummary: contextSummary, includeTools: includeTools, isPartOfChain: isPartOfChain)}${_middleString(includeTools: includeTools, isPartOfChain: isPartOfChain)}';
     final systemChunks = _chunkText(system.trim());
 
-    final history = <Map<String, String>>[];
+    final history = <Map<String, dynamic>>[];
     if (memoryMessages != null && memoryMessages.isNotEmpty) {
       for (final msg in memoryMessages) {
-        if (msg.isError) continue;
+        if (msg.isError || msg.content.isEmpty) continue;
         if (msg.content.length > kWireMaxChars) {
           throw ConfigException(
             'Wire history message exceeds $kWireMaxChars chars '
             '(${msg.content.length}); trim client-side before sending.',
           );
+        }
+        // Tool outcomes replay as `tool_result` (backend §8): attributed via
+        // `tool_name` (+ short `tool_call_id` when the runner provides one).
+        // The final `user` tail is appended after history, so these are never
+        // last.
+        if (msg.toolName != null) {
+          history.add({
+            'role': 'tool_result',
+            'content': msg.content,
+            'tool_name': msg.toolName!,
+            if (msg.toolCallId != null && msg.toolCallId!.isNotEmpty)
+              'tool_call_id': msg.toolCallId!.length > 100
+                  ? msg.toolCallId!.substring(0, 100)
+                  : msg.toolCallId!,
+          });
+          continue;
         }
         history.add({
           'role': msg.isFromAgent ? 'assistant' : 'user',
@@ -301,21 +322,34 @@ RULES:
         });
       }
     }
-    if (tail.length > kWireMaxChars) {
+    if (tail.isEmpty || tail.length > kWireMaxChars) {
       throw ConfigException(
-        'Wire tail message exceeds $kWireMaxChars chars (${tail.length}); '
-        'trim client-side before sending.',
+        tail.isEmpty
+            ? 'Wire tail message is empty; the last message must carry the user prompt.'
+            : 'Wire tail message exceeds $kWireMaxChars chars (${tail.length}); '
+                  'trim client-side before sending.',
       );
     }
 
     // Oldest history drops first so system chunks + history + final user
     // always fit the count cap.
     final maxHistory = kWireMaxMessages - systemChunks.length - 1;
-    final kept = maxHistory <= 0
-        ? <Map<String, String>>[]
+    var kept = maxHistory <= 0
+        ? <Map<String, dynamic>>[]
         : history.length <= maxHistory
         ? history
         : history.sublist(history.length - maxHistory);
+
+    // …then the total budget, oldest first (system text is never cut).
+    int totalLength(Iterable<Map<String, dynamic>> msgs) =>
+        msgs.fold(0, (sum, m) => sum + (m['content'] as String).length);
+    final systemLen = totalLength([
+      for (final chunk in systemChunks) {'content': chunk},
+    ]);
+    while (kept.isNotEmpty &&
+        systemLen + totalLength(kept) + tail.length > kWireTotalChars) {
+      kept = kept.sublist(1);
+    }
     return [
       for (final chunk in systemChunks) {'role': 'system', 'content': chunk},
       ...kept,

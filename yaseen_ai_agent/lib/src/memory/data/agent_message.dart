@@ -33,6 +33,15 @@ class AgentMessage {
   /// conversation history sent to the LLM.
   final bool isError;
 
+  /// When set, this message is a tool outcome: builders map it to the
+  /// `tool_result` role (with `tool_name`, and `tool_call_id` when present)
+  /// instead of `user`/`assistant`. Null for regular chat messages.
+  final String? toolName;
+
+  /// Provider call id linking this result to a parallel tool call, if any.
+  /// Capped by backends (100 chars) — producers should keep it short.
+  final String? toolCallId;
+
   /// Constructs an AgentMessage with required content and generatedAt,
   AgentMessage({
     required this.content,
@@ -43,7 +52,51 @@ class AgentMessage {
     this.imageUrl,
     this.data,
     this.isError = false,
+    this.toolName,
+    this.toolCallId,
   });
+
+  /// Creates a tool-outcome message for history replay.
+  factory AgentMessage.toolResult({
+    required String toolName,
+    required String content,
+    String? toolCallId,
+    DateTime? generatedAt,
+  }) => AgentMessage(
+    content: content,
+    generatedAt: generatedAt ?? DateTime.now(),
+    isFromAgent: true,
+    toolName: toolName,
+    toolCallId: toolCallId,
+  );
+
+  /// Builds one tool-outcome message per observation map
+  /// (`{tool, success, message, data?}`, as produced by the agent loop).
+  /// Content is JSON `{'success','message','data'?}` so replays are
+  /// self-describing; falls back to the raw message when encoding fails.
+  static List<AgentMessage> fromObservations(
+    List<Map<String, dynamic>> observations,
+  ) {
+    final messages = <AgentMessage>[];
+    for (final o in observations) {
+      final tool = (o['tool'] ?? '').toString();
+      if (tool.isEmpty) continue;
+      final success = o['success'] == true;
+      final message = (o['message'] ?? '').toString();
+      String content;
+      try {
+        content = json.encode({
+          'success': success,
+          'message': message,
+          if (o['data'] != null) 'data': o['data'],
+        });
+      } catch (_) {
+        content = message;
+      }
+      messages.add(AgentMessage.toolResult(toolName: tool, content: content));
+    }
+    return messages;
+  }
 
   /// Creates a copy of the current message with optional new values for each field
   AgentMessage copyWith({
@@ -55,6 +108,8 @@ class AgentMessage {
     String? imageUrl,
     Map<String, dynamic>? data,
     bool? isError,
+    String? toolName,
+    String? toolCallId,
   }) {
     return AgentMessage(
       content: content ?? this.content,
@@ -65,6 +120,8 @@ class AgentMessage {
       imageUrl: imageUrl ?? this.imageUrl,
       data: data ?? this.data,
       isError: isError ?? this.isError,
+      toolName: toolName ?? this.toolName,
+      toolCallId: toolCallId ?? this.toolCallId,
     );
   }
 
@@ -78,6 +135,8 @@ class AgentMessage {
       'imageUrl': imageUrl,
       'data': data,
       'isError': isError,
+      if (toolName != null) 'toolName': toolName,
+      if (toolCallId != null) 'toolCallId': toolCallId,
     };
   }
 
@@ -93,6 +152,8 @@ class AgentMessage {
       imageUrl: map['imageUrl'] != null ? map['imageUrl'] as String : null,
       data: map['data'] as Map<String, dynamic>?,
       isError: map['isError'] as bool? ?? false,
+      toolName: map['toolName'] as String?,
+      toolCallId: map['toolCallId'] as String?,
     );
   }
 
@@ -105,7 +166,7 @@ class AgentMessage {
 
   @override
   String toString() {
-    return 'AgentMessage(content: $content, generatedAt: $generatedAt, isFromAgent: $isFromAgent, imageData: $imageData, mimeType: $mimeType, imageUrl: $imageUrl, data: $data, isError: $isError)';
+    return 'AgentMessage(content: $content, generatedAt: $generatedAt, isFromAgent: $isFromAgent, imageData: $imageData, mimeType: $mimeType, imageUrl: $imageUrl, data: $data, isError: $isError, toolName: $toolName, toolCallId: $toolCallId)';
   }
 
   /// Equality check based on all fields
@@ -120,7 +181,9 @@ class AgentMessage {
         other.mimeType == mimeType &&
         other.imageUrl == imageUrl &&
         _mapsEqual(other.data, data) &&
-        other.isError == isError;
+        other.isError == isError &&
+        other.toolName == toolName &&
+        other.toolCallId == toolCallId;
   }
 
   /// Pure-Dart equality helpers (no flutter dependency).
@@ -155,5 +218,7 @@ class AgentMessage {
     imageUrl,
     data != null ? Object.hashAll(data!.entries) : null,
     isError,
+    toolName,
+    toolCallId,
   );
 }

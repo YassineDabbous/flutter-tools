@@ -7,7 +7,6 @@ import 'package:yaseen_ai_agent/src/llm/_custom.dart';
 import 'package:yaseen_ai_agent/src/llm/_gemini.dart';
 import 'package:yaseen_ai_agent/src/llm/_ollama.dart';
 import 'package:yaseen_ai_agent/src/llm/_openai.dart';
-import 'package:yaseen_ai_agent/src/llm/_rebelo_proxy.dart';
 import 'package:yaseen_ai_agent/src/llm/llm_config.dart';
 import 'package:yaseen_ai_agent/src/tools/tool.dart';
 import 'package:dio/dio.dart';
@@ -63,12 +62,17 @@ abstract class LLM {
 
   /// Structured-messages variant of [generate].
   ///
+  /// Maps carry at least `role`/`content` (both strings); roles beyond
+  /// `system`/`user`/`assistant` (e.g. a proxy's `tool_result` with
+  /// `tool_call_id`/`tool_name` extras) pass through untouched for providers
+  /// that understand them.
+  ///
   /// The default implementation flattens `system` roles into
   /// [generate]'s `systemInstruction` and renders the rest as
   /// `role: content` lines, so providers that only implement the legacy path
   /// keep working unchanged.
   Future<String> generateWithMessages({
-    required List<Map<String, String>> messages,
+    required List<Map<String, dynamic>> messages,
     Uint8List? rawData,
     String mimeType = 'image/jpeg',
     List<Tool>? tools,
@@ -88,7 +92,7 @@ abstract class LLM {
   /// Same flattening default as [generateWithMessages]; structured providers
   /// override for true message-based streaming.
   Stream<String> generateStreamWithMessages({
-    required List<Map<String, String>> messages,
+    required List<Map<String, dynamic>> messages,
     Uint8List? rawData,
     String mimeType = 'image/jpeg',
     List<Tool>? tools,
@@ -270,17 +274,4 @@ abstract class LLM {
     generateWithMessages: generateWithMessages,
     generateStreamWithMessages: generateStreamWithMessages,
   );
-
-  /// Creates a Rebelo AI-proxy-backed [LLM] instance.
-  ///
-  /// Unlike the direct providers, authentication comes from the injected
-  /// [client] (the app's authenticated Dio: `Auth`/`Refresh` interceptors
-  /// attach the Sanctum token, `Tenant-Id`, and locale headers), so there is
-  /// no API key parameter. Pass the app Dio — or a fake Dio in tests.
-  /// [baseUrl] is only used when [client] is null, to build an owned client.
-  static LLM rebeloProxy({
-    Dio? client,
-    String? baseUrl,
-    LlmConfig config = const LlmConfig(timeout: Duration(seconds: 180)),
-  }) => RebeloProxy(client: client, baseUrl: baseUrl, config: config);
 }

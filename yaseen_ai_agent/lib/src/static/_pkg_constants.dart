@@ -36,3 +36,12 @@ const int kWireMaxMessages = 20;
 /// Hard cap on characters per `role`/`content` message for structured wire
 /// providers (matches the Rebelo AI proxy contract).
 const int kWireMaxChars = 4000;
+
+/// Hard cap on total characters across all `role`/`content` messages per
+/// request for structured wire providers (matches the Rebelo AI proxy
+/// contract). When exceeded, oldest history drops first; system text is
+/// never cut.
+///
+/// Single place for all backend wire numbers: when the backend raises its
+/// caps, editing these three constants is the whole change.
+const int kWireTotalChars = 32000;

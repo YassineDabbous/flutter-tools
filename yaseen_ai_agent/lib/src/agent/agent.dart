@@ -404,6 +404,11 @@ class Agent {
   /// Persists a terminal message per the turn's save flags, logs the outcome,
   /// and yields the closing chunk. Single funnel for all success terminals so
   /// debug output and persistence cannot drift apart.
+  ///
+  /// [toolObservations] (the turn's tool outcomes) persist as `tool_result`
+  /// history messages between the user message and the terminal, so later
+  /// turns replay them per the backend contract. Skipped for chained
+  /// sub-turns (`persistTerminal: false`), which persist nothing.
   Stream<AgentStreamChunk> _finish({
     required AgentMessage message,
     required String convoId,
@@ -412,6 +417,7 @@ class Agent {
     required bool saveUser,
     required bool persistTerminal,
     required Stopwatch turnClock,
+    List<Map<String, dynamic>> toolObservations = const [],
   }) async* {
     _debug(
       'terminal message after ${turnClock.elapsedMilliseconds}ms: '
@@ -425,6 +431,15 @@ class Agent {
       );
     }
     if (persistTerminal) {
+      for (final toolMessage in AgentMessage.fromObservations(
+        toolObservations,
+      )) {
+        await _memoryManager.saveMessage(
+          convoId,
+          toolMessage,
+          metaData: metaData,
+        );
+      }
       await _memoryManager.saveMessage(convoId, message, metaData: metaData);
     }
     yield AgentStreamChunk.done(AgentResult.message(message));
@@ -595,6 +610,7 @@ class Agent {
               saveUser: saveUser,
               persistTerminal: persistTerminal,
               turnClock: turnClock,
+              toolObservations: observations,
             );
             return;
 
@@ -631,6 +647,7 @@ class Agent {
               saveUser: false,
               persistTerminal: persistTerminal,
               turnClock: turnClock,
+              toolObservations: observations,
             );
             return;
 
@@ -715,6 +732,7 @@ class Agent {
                 saveUser: saveUser,
                 persistTerminal: persistTerminal,
                 turnClock: turnClock,
+                toolObservations: observations,
               );
               return;
             }
@@ -864,6 +882,7 @@ class Agent {
         saveUser: saveUser,
         persistTerminal: persistTerminal,
         turnClock: turnClock,
+        toolObservations: observations,
       );
       return;
     } on CancelledException {
