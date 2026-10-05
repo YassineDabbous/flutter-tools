@@ -1,6 +1,9 @@
-import 'package:yaseen_ai_agent/yaseen_ai_agent.dart';
+import 'package:yaseen_ai_agent/src/static/yaseen_ai_agent_exceptions.dart';
 import 'package:yaseen_ai_agent/src/tools/_param_validator.dart';
 import 'package:yaseen_ai_agent/src/tools/_parser.dart';
+import 'package:yaseen_ai_agent/src/tools/tool_context.dart';
+import 'package:yaseen_ai_agent/src/tools/tool_registry.dart';
+import 'package:yaseen_ai_agent/src/tools/tool_response.dart';
 
 /// Runs tools based on the parsed LLM output, validating parameters first.
 class ToolRunner {
@@ -13,6 +16,9 @@ class ToolRunner {
     final List<ToolResponse> responses = [];
 
     for (final toolName in result.toolNames) {
+      if (context.cancelToken?.isCancelled ?? false) {
+        throw const CancelledException();
+      }
       final tool = registry.getTool(toolName);
       if (tool == null) {
         throw ToolNotFoundException(toolName);

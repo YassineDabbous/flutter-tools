@@ -127,7 +127,28 @@ class ConfigException extends YaseenAiAgentException {
   const ConfigException(super.message, {super.cause, super.causeStack});
 }
 
-/// Controls how the agent surfaces errors from [Agent.generateResponse].
+/// Thrown when a [CancellationToken] fires mid-turn.
+///
+/// Caught inside [Agent.generate]/[Agent.generateStream] and surfaced as a
+/// cancelled [AgentMessage] (`isError: true`, excluded from future context),
+/// never as a user-visible error. Control flow only — never thrown to UI.
+class CancelledException extends YaseenAiAgentException {
+  /// Creates a [CancelledException].
+  const CancelledException([super.message = 'Agent turn cancelled']);
+}
+
+/// Thrown when [Agent.resumeWithApproval] references an unknown approval id
+/// (already resumed, expired, or never issued).
+class UnknownApprovalException extends YaseenAiAgentException {
+  /// The unknown approval id.
+  final String approvalId;
+
+  /// Creates an [UnknownApprovalException] for [approvalId].
+  const UnknownApprovalException(this.approvalId)
+    : super('Unknown approval $approvalId');
+}
+
+/// Controls how the agent surfaces errors from [Agent.generate].
 enum FailureMode {
   /// Rethrow the typed [YaseenAiAgentException] to the caller.
   throwError,

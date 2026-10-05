@@ -7,6 +7,16 @@ import 'package:yaseen_ai_agent/src/tools/param_spec.dart';
 import 'package:yaseen_ai_agent/src/tools/tool_context.dart';
 import 'package:yaseen_ai_agent/src/tools/tool_response.dart';
 
+/// Approval policy for a tool call requested by the LLM.
+enum ToolApproval {
+  /// Execute immediately when requested.
+  auto,
+
+  /// Pause the turn with a [PendingApproval]; executes only after
+  /// [Agent.resumeWithApproval] approves. All money-moving tools use this.
+  requireApproval,
+}
+
 /// The Tool class is an abstract class that defines the structure and behavior of a tool.
 /// It includes the name, description, and parameters of the tool.
 abstract class Tool {
@@ -19,11 +29,17 @@ abstract class Tool {
   /// The parameters that the tool accepts.
   final List<ParameterSpecification> parameters;
 
+  /// Whether the LLM may invoke this tool freely ([ToolApproval.auto]) or
+  /// must pause for human approval first (`requireApproval`, resumed via
+  /// `Agent.resumeWithApproval`).
+  final ToolApproval approval;
+
   /// Constructs a Tool with the required fields.
   Tool({
     required this.name,
     required this.description,
     this.parameters = const [],
+    this.approval = ToolApproval.auto,
   });
 
   /// Executes the tool with the given validated parameters.

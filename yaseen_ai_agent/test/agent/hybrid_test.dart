@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yaseen_ai_agent/src/agent/agent.dart';
+import 'package:yaseen_ai_agent/src/agent/agent_result.dart';
 import 'package:yaseen_ai_agent/src/agent/agent_scope.dart';
 import 'package:yaseen_ai_agent/src/llm/llm.dart';
 import 'package:yaseen_ai_agent/src/llm/llm_config.dart';
@@ -49,6 +50,12 @@ AgentMessage _user(String text) => AgentMessage(
   isFromAgent: false,
 );
 
+/// Unwraps a terminal message result (tests only use auto-approval tools).
+Future<String> _content(Future<AgentResult> future) async {
+  final result = await future;
+  return ((result as AgentMessageResult).message).content;
+}
+
 void main() {
   group('hybrid tool protocol', () {
     test('native LLM receives tools out-of-band', () async {
@@ -70,11 +77,10 @@ void main() {
       );
       agent.toolRegistry.registerTool(SpyTool());
 
-      final response = await agent.generate(
-        convoId: 'c-native',
-        userMessage: _user('find tea'),
+      final content = await _content(
+        agent.generate(convoId: 'c-native', userMessage: _user('find tea')),
       );
-      expect(response.content, 'done');
+      expect(content, 'done');
       expect(fake.seenTools, isNotNull);
       expect(fake.seenTools!.map((t) => t.name), contains('spy_tool'));
       agent.dispose();
@@ -99,33 +105,37 @@ void main() {
       );
       agent.toolRegistry.registerTool(SpyTool());
 
-      final response = await agent.generate(
-        convoId: 'c-fallback',
-        userMessage: _user('find tea'),
+      final content = await _content(
+        agent.generate(convoId: 'c-fallback', userMessage: _user('find tea')),
       );
-      expect(response.content, 'done');
+      expect(content, 'done');
       expect(fake.seenTools, isNull);
       expect(fake.seenPrompts.first, contains('Available Tools:'));
       expect(fake.seenPrompts.first, contains('spy_tool'));
       agent.dispose();
     });
 
-    test('deprecated generateResponse delegates to generate', () async {
+    test('terminal message is persisted with the user message', () async {
       final scope = AgentScope();
-      final fake = _FakeLLM(native: false, script: ['{"response": "shim ok"}']);
+      final store = DataStore.inMemory();
+      final fake = _FakeLLM(
+        native: false,
+        script: ['{"response": "saved ok"}'],
+      );
       final agent = await Agent.create(
-        dataStore: DataStore.inMemory(),
+        dataStore: store,
         llm: fake,
-        name: 'shim-agent',
+        name: 'persist-agent',
         role: 'test agent',
         systemData: const {},
         scope: scope,
       );
-      final response = await agent.generateResponse(
-        convoId: 'c-shim',
-        userMessage: _user('hi'),
+      final content = await _content(
+        agent.generate(convoId: 'c-persist', userMessage: _user('hi')),
       );
-      expect(response.content, 'shim ok');
+      expect(content, 'saved ok');
+      final messages = await store.getMessages('c-persist');
+      expect(messages.map((m) => m.content), ['hi', 'saved ok']);
       agent.dispose();
     });
   });

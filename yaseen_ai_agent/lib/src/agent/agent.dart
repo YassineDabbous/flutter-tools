@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:yaseen_ai_agent/yaseen_ai_agent.dart';
 import 'package:yaseen_ai_agent/src/static/_pkg_constants.dart';
+import 'package:yaseen_ai_agent/src/tools/_param_validator.dart';
 import 'package:yaseen_ai_agent/src/tools/_parser.dart';
 import 'package:yaseen_ai_agent/src/tools/_tool_runner.dart';
 import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
 
 part '_memory_manager.dart';
 part '_prompt_builder.dart';
@@ -135,44 +137,194 @@ class Agent {
     }
   }
 
+  /// Paused approval states owned by this agent, keyed by approval id.
+  ///
+  /// Chained sub-turns store theirs on the owning agent; [resumeWithApproval]
+  /// routes across the scope, so callers only ever talk to the root agent.
+  final Map<String, _PendingState> _pendings = {};
+
   /// Generate a response to the user message. This is the public facing method.
   ///
+  /// Returns [AgentResult.message] on completion or [AgentResult.pendingApproval]
+  /// when the LLM requests a `requireApproval` tool (nothing executed yet).
   /// When the LLM supports native function calling, tool specs travel in the
   /// API payload and the prompt stays lean; otherwise the JSON-text fallback
-  /// contract is used. Either way tool calls arrive as [PromptParserResult].
-  Future<AgentMessage> generate({
+  /// contract is used.
+  Future<AgentResult> generate({
     required String convoId,
     required AgentMessage userMessage,
     int memoryLimit = 10,
     Object? metaData,
+    CancellationToken? cancelToken,
   }) async {
-    try {
-      final response = await _generateResponse(
-        convoId: convoId,
-        userMessage: userMessage,
-        memoryLimit: memoryLimit,
-        metaData: metaData,
-        isPartOfChain: false,
-      );
+    AgentResult? terminal;
+    await for (final chunk in _turnStream(
+      convoId: convoId,
+      userMessage: userMessage,
+      memoryLimit: memoryLimit,
+      metaData: metaData,
+      saveUser: true,
+      persistTerminal: true,
+      cancelToken: cancelToken,
+    )) {
+      if (chunk is AgentDoneChunk) terminal = chunk.result;
+    }
+    if (terminal == null) {
+      throw StateError('Agent turn produced no result');
+    }
+    return terminal;
+  }
 
-      // Save both messages after generation so the user message isn't
-      // duplicated in the context that was just sent to the LLM.
-      await _memoryManager.saveMessage(
-        convoId,
-        userMessage,
-        metaData: metaData,
+  /// Streaming variant of [generate].
+  ///
+  /// Yields [AgentTextChunk] deltas in LLM order, then exactly one
+  /// [AgentDoneChunk] with the terminal [AgentResult]. Cancellation and
+  /// approval pauses surface as chunks, never as stream errors (unless
+  /// [failureMode] is [FailureMode.throwError]).
+  Stream<AgentStreamChunk> generateStream({
+    required String convoId,
+    required AgentMessage userMessage,
+    int memoryLimit = 10,
+    Object? metaData,
+    CancellationToken? cancelToken,
+  }) {
+    return _turnStream(
+      convoId: convoId,
+      userMessage: userMessage,
+      memoryLimit: memoryLimit,
+      metaData: metaData,
+      saveUser: true,
+      persistTerminal: true,
+      cancelToken: cancelToken,
+    );
+  }
+
+  /// Resumes a turn paused with [AgentResult.pendingApproval].
+  ///
+  /// [approved] executes the gated tool (with [editedParams] when provided)
+  /// and continues the turn; denied turns end with a graceful skip message
+  /// and no side effects. Each approval resumes exactly once — unknown or
+  /// already-consumed ids throw [UnknownApprovalException].
+  Future<AgentResult> resumeWithApproval({
+    required String pendingId,
+    required bool approved,
+    Map<String, dynamic>? editedParams,
+    CancellationToken? cancelToken,
+  }) async {
+    final owner = _ownerOf(pendingId);
+    if (owner == null) throw UnknownApprovalException(pendingId);
+    if (!identical(owner, this)) {
+      return owner.resumeWithApproval(
+        pendingId: pendingId,
+        approved: approved,
+        editedParams: editedParams,
+        cancelToken: cancelToken,
       );
-      await _memoryManager.saveMessage(convoId, response, metaData: metaData);
-      return response;
+    }
+    final state = _pendings.remove(pendingId)!;
+    try {
+      if (cancelToken?.isCancelled ?? false) {
+        throw const CancelledException();
+      }
+      final tool = toolRegistry.getTool(state.toolName);
+      if (tool == null) throw ToolNotFoundException(state.toolName);
+      if (!approved) {
+        final skipped = AgentMessage(
+          content: 'OK — I skipped ${state.toolName}.',
+          isFromAgent: true,
+          generatedAt: DateTime.now(),
+        );
+        await _memoryManager.saveMessage(
+          state.convoId,
+          skipped,
+          metaData: state.metaData,
+        );
+        return AgentResult.message(skipped);
+      }
+      var params = state.params;
+      if (editedParams != null) {
+        final validation = validateParams(tool.parameters, editedParams);
+        if (!validation.isValid) {
+          throw ToolExecutionException(
+            state.toolName,
+            'Edited parameters invalid for tool ${state.toolName}: '
+            '${validation.errors.join("; ")}',
+          );
+        }
+        params = validation.values;
+      }
+      final callKey = _callKey(state.toolName, params);
+      final context = ToolContext(
+        metaData: state.metaData,
+        cancelToken: cancelToken,
+      );
+      late final ToolResponse toolResponse;
+      try {
+        toolResponse = await tool.runWithContext(params, context);
+      } on YaseenAiAgentException {
+        rethrow;
+      } catch (e, st) {
+        throw ToolExecutionException(
+          state.toolName,
+          'Tool ${state.toolName} threw during execution: $e',
+          cause: e,
+          causeStack: st,
+        );
+      }
+      final observation = {
+        'tool': toolResponse.toolName,
+        'success': toolResponse.isRequestSuccessful,
+        'message': toolResponse.message,
+        if (toolResponse.data != null) 'data': toolResponse.data,
+      };
+      if (toolResponse.needsFurtherReasoning) {
+        final reasoned = await _reasonUsingData(state.userMessage.content, [
+          toolResponse,
+        ]);
+        await _memoryManager.saveMessage(
+          state.convoId,
+          reasoned,
+          metaData: state.metaData,
+        );
+        return AgentResult.message(reasoned);
+      }
+      AgentResult? terminal;
+      await for (final chunk in _turnStream(
+        convoId: state.convoId,
+        userMessage: state.userMessage,
+        memoryLimit: state.memoryLimit,
+        metaData: state.metaData,
+        saveUser: false,
+        persistTerminal: true,
+        cancelToken: cancelToken,
+        initialObservations: [observation],
+        initialAttempted: {...state.attemptedKeys, callKey},
+        initialStep: state.stepsUsed,
+      )) {
+        if (chunk is AgentDoneChunk) terminal = chunk.result;
+      }
+      if (terminal == null) {
+        throw StateError('Agent turn produced no result');
+      }
+      return terminal;
+    } on CancelledException {
+      final msg = _cancelledMessage();
+      await _memoryManager.saveMessage(
+        state.convoId,
+        msg,
+        metaData: state.metaData,
+      );
+      return AgentResult.message(msg);
     } on YaseenAiAgentException catch (e, st) {
       onError?.call(e, st);
       if (failureMode == FailureMode.throwError) rethrow;
-      return AgentMessage(
-        content: kLLMResponseOnFailure,
-        isFromAgent: true,
-        generatedAt: DateTime.now(),
-        isError: true,
+      final msg = _gracefulMessage();
+      await _memoryManager.saveMessage(
+        state.convoId,
+        msg,
+        metaData: state.metaData,
       );
+      return AgentResult.message(msg);
     } catch (e, st) {
       final wrapped = LlmException(
         'Unexpected error: $e',
@@ -181,238 +333,501 @@ class Agent {
       );
       onError?.call(wrapped, st);
       if (failureMode == FailureMode.throwError) throw wrapped;
-      return AgentMessage(
-        content: kLLMResponseOnFailure,
-        isFromAgent: true,
-        generatedAt: DateTime.now(),
-        isError: true,
+      final msg = _gracefulMessage();
+      await _memoryManager.saveMessage(
+        state.convoId,
+        msg,
+        metaData: state.metaData,
       );
+      return AgentResult.message(msg);
     }
   }
 
-  /// Deprecated: use [generate] instead. Delegates without behavior change.
-  @Deprecated('Use generate() instead')
-  Future<AgentMessage> generateResponse({
-    required String convoId,
-    required AgentMessage userMessage,
-    int memoryLimit = 10,
-    Object? metaData,
-  }) => generate(
-    convoId: convoId,
-    userMessage: userMessage,
-    memoryLimit: memoryLimit,
-    metaData: metaData,
+  /// Finds the agent in this scope owning [pendingId], if any.
+  Agent? _ownerOf(String pendingId) {
+    if (_pendings.containsKey(pendingId)) return this;
+    for (final agent in _AgentRegistry.instance.getAllAgents(scope: _scope)) {
+      if (agent._pendings.containsKey(pendingId)) return agent;
+    }
+    return null;
+  }
+
+  /// Encodes one attempted `(tool, params)` call for duplicate suppression.
+  static String _callKey(String toolName, Map<String, dynamic> params) =>
+      json.encode({'tool': toolName, 'params': params});
+
+  static AgentMessage _cancelledMessage() => AgentMessage(
+    content: 'Request cancelled.',
+    isFromAgent: true,
+    generatedAt: DateTime.now(),
+    isError: true,
   );
 
-  Future<AgentMessage> _generateResponse({
+  static AgentMessage _gracefulMessage() => AgentMessage(
+    content: kLLMResponseOnFailure,
+    isFromAgent: true,
+    generatedAt: DateTime.now(),
+    isError: true,
+  );
+
+  /// Single turn implementation backing [generate], [generateStream] and
+  /// [resumeWithApproval]. Streams [AgentTextChunk] deltas in LLM order and
+  /// always terminates with exactly one [AgentDoneChunk] unless [failureMode]
+  /// rethrows.
+  Stream<AgentStreamChunk> _turnStream({
     required String convoId,
     required AgentMessage userMessage,
-    int memoryLimit = 10,
+    required int memoryLimit,
     Object? metaData,
+    required bool saveUser,
+    required bool persistTerminal,
     bool isPartOfChain = false,
     String? input,
     Set<String>? chainVisited,
     int chainDepth = 0,
-  }) async {
-    final (:messages, :summary) = await _memoryManager.getContext(
-      convoId,
-      limit: memoryLimit,
-      metaData: metaData,
-    );
+    CancellationToken? cancelToken,
+    bool propagateCancel = false,
+    List<Map<String, dynamic>>? initialObservations,
+    Set<String>? initialAttempted,
+    int initialStep = 0,
+  }) async* {
+    Future<void> saveUserMessage() =>
+        _memoryManager.saveMessage(convoId, userMessage, metaData: metaData);
+    Future<void> saveAgentMessage(AgentMessage message) =>
+        _memoryManager.saveMessage(convoId, message, metaData: metaData);
 
-    // Hybrid tool protocol: native-capable LLMs receive specs out-of-band and
-    // get a lean prompt; everyone else gets the full JSON-text contract.
-    final nativeTools =
-        llm.supportsNativeTools && toolRegistry.getAllTools().isNotEmpty
-        ? toolRegistry.getAllTools()
-        : null;
-
-    final prompt = _promptBuilder.buildTextPrompt(
-      memoryMessages: messages,
-      contextSummary: summary,
-      userMessage: userMessage,
-      isPartOfChain: isPartOfChain,
-      input: input,
-      includeTools: nativeTools == null,
-    );
-
-    // Accumulated tool observations for multi-step tool use.
-    final observations = <Map<String, dynamic>>[];
-    // Per-tool (name + params) keys that have already been attempted this turn.
-    // Used to hard-block re-execution — the model cannot repeat a call even if
-    // it ignores the observation prompt.
-    final attemptedCalls = <String>{};
-    var currentPrompt = prompt;
-    var isFirstCall = true;
-
-    for (var step = 0; step < kMaxToolIterations; step++) {
-      final parsed = await _llmGenerateWithParseRetry(
-        prompt: currentPrompt,
-        rawData: isFirstCall ? userMessage.imageData : null,
-        tools: nativeTools,
+    try {
+      if (cancelToken?.isCancelled ?? false) {
+        throw const CancelledException();
+      }
+      final (:messages, :summary) = await _memoryManager.getContext(
+        convoId,
+        limit: memoryLimit,
+        metaData: metaData,
       );
-      isFirstCall = false;
 
-      switch (parsed.outcome) {
-        case ParseOutcome.response:
-          final response = parsed.fallbackResponse ?? kLLMResponseOnFailure;
-          return AgentMessage(
-            content: response,
-            isFromAgent: true,
-            generatedAt: DateTime.now(),
-            data: observations.isNotEmpty
-                ? {'observations': observations}
-                : null,
-          );
+      // Hybrid tool protocol: native-capable LLMs receive specs out-of-band and
+      // get a lean prompt; everyone else gets the full JSON-text contract.
+      final nativeTools =
+          llm.supportsNativeTools && toolRegistry.getAllTools().isNotEmpty
+          ? toolRegistry.getAllTools()
+          : null;
 
-        case ParseOutcome.agentsChain:
-          return _handleAgentChain(
-            parsed: parsed,
-            convoId: convoId,
-            userMessage: userMessage,
-            memoryLimit: memoryLimit,
-            metaData: metaData,
-            visited: chainVisited,
-            depth: chainDepth,
-          );
+      final prompt = _promptBuilder.buildTextPrompt(
+        memoryMessages: messages,
+        contextSummary: summary,
+        userMessage: userMessage,
+        isPartOfChain: isPartOfChain,
+        input: input,
+        includeTools: nativeTools == null,
+      );
 
-        case ParseOutcome.tools:
-          // Filter out any (tool, params) combo already attempted this turn.
-          // Prevents duplicate side effects even if the model ignores the
-          // observation prompt's "do not re-invoke" instruction.
-          final remaining = <String>[];
-          final remainingKeys = <String>[];
-          for (final toolName in parsed.toolNames) {
-            final key = json.encode({
-              'tool': toolName,
-              'params': parsed.params[toolName] ?? const <String, dynamic>{},
-            });
-            if (attemptedCalls.contains(key)) continue;
-            remaining.add(toolName);
-            remainingKeys.add(key);
+      // Accumulated tool observations for multi-step tool use.
+      final observations = <Map<String, dynamic>>[...?initialObservations];
+      // Per-tool (name + params) keys that have already been attempted this turn.
+      // Used to hard-block re-execution — the model cannot repeat a call even if
+      // it ignores the observation prompt.
+      final attemptedCalls = <String>{...?initialAttempted};
+      var currentPrompt = observations.isEmpty
+          ? prompt
+          : _buildObservationPrompt(
+              originalPrompt: prompt,
+              observations: observations,
+            );
+      var isFirstCall = initialObservations == null;
+      final toolContext = ToolContext(
+        metaData: metaData,
+        cancelToken: cancelToken,
+      );
+
+      for (var step = initialStep; step < kMaxToolIterations; step++) {
+        if (cancelToken?.isCancelled ?? false) {
+          throw const CancelledException();
+        }
+        // Streaming parse-retry: deltas yield as they arrive; the full text
+        // is parsed once the provider stream closes.
+        var parsed = PromptParserResult(
+          outcome: ParseOutcome.unparseable,
+          agentNames: const <String>[],
+          toolNames: const <String>[],
+          params: const <String, Map<String, dynamic>>{},
+          rawOutput: currentPrompt,
+        );
+        var attemptPrompt = currentPrompt;
+        for (var attempt = 0; attempt <= kMaxParseRetries; attempt++) {
+          if (cancelToken?.isCancelled ?? false) {
+            throw const CancelledException();
           }
+          final buffer = StringBuffer();
+          await for (final delta in llm.generateStream(
+            prompt: attemptPrompt,
+            systemInstruction: _promptBuilder.systemInstruction,
+            rawData: (attempt == 0 && isFirstCall)
+                ? userMessage.imageData
+                : null,
+            tools: nativeTools,
+          )) {
+            buffer.write(delta);
+            yield AgentStreamChunk.text(delta);
+          }
+          parsed = _promptParser.parse(buffer.toString());
+          if (parsed.outcome != ParseOutcome.unparseable) break;
+          attemptPrompt = '$currentPrompt\n\n$kParseRetryInstruction';
+        }
+        isFirstCall = false;
 
-          if (remaining.isEmpty) {
-            // Model re-requested only already-attempted tools. Return with
-            // whatever we have so we don't burn more LLM calls.
-            final successMessages = observations
-                .where((o) => o['success'] == true)
-                .map((o) => (o['message'] ?? '').toString())
-                .where((m) => m.isNotEmpty)
-                .toList();
-            final content = successMessages.isNotEmpty
-                ? successMessages.join('\n')
-                : kLLMResponseOnFailure;
-            return AgentMessage(
-              content: content,
+        switch (parsed.outcome) {
+          case ParseOutcome.response:
+            final response = parsed.fallbackResponse ?? kLLMResponseOnFailure;
+            final message = AgentMessage(
+              content: response,
               isFromAgent: true,
               generatedAt: DateTime.now(),
               data: observations.isNotEmpty
                   ? {'observations': observations}
                   : null,
             );
-          }
+            if (saveUser) await saveUserMessage();
+            if (persistTerminal) await saveAgentMessage(message);
+            yield AgentStreamChunk.done(AgentResult.message(message));
+            return;
 
-          // Mark as attempted BEFORE running so an exception mid-flight still
-          // blocks a naive retry of the same call.
-          attemptedCalls.addAll(remainingKeys);
+          case ParseOutcome.agentsChain:
+            AgentResult? chainTerminal;
+            await for (final chunk in _handleAgentChainStream(
+              parsed: parsed,
+              convoId: convoId,
+              userMessage: userMessage,
+              memoryLimit: memoryLimit,
+              metaData: metaData,
+              cancelToken: cancelToken,
+              visited: chainVisited,
+              depth: chainDepth,
+            )) {
+              if (chunk is AgentTextChunk) {
+                yield chunk;
+              } else if (chunk is AgentDoneChunk) {
+                chainTerminal = chunk.result;
+              }
+            }
+            if (saveUser) await saveUserMessage();
+            if (chainTerminal is AgentPendingResult) {
+              yield AgentStreamChunk.done(chainTerminal);
+              return;
+            }
+            final chained = (chainTerminal as AgentMessageResult).message;
+            if (persistTerminal) await saveAgentMessage(chained);
+            yield AgentStreamChunk.done(AgentResult.message(chained));
+            return;
 
-          final filteredParsed = PromptParserResult(
-            outcome: ParseOutcome.tools,
-            toolNames: remaining,
-            params: {
-              for (final t in remaining)
-                t: parsed.params[t] ?? const <String, dynamic>{},
-            },
-            agentNames: parsed.agentNames,
-            rawOutput: parsed.rawOutput,
-          );
+          case ParseOutcome.tools:
+            final gated = _firstGatedTool(parsed.toolNames);
+            if (gated != null) {
+              yield* _pauseForApproval(
+                toolName: gated,
+                parsed: parsed,
+                convoId: convoId,
+                userMessage: userMessage,
+                memoryLimit: memoryLimit,
+                metaData: metaData,
+                saveUser: saveUser,
+                attemptedCalls: attemptedCalls,
+                step: step,
+              );
+              return;
+            }
+            // Filter out any (tool, params) combo already attempted this turn.
+            // Prevents duplicate side effects even if the model ignores the
+            // observation prompt's "do not re-invoke" instruction.
+            final remaining = <String>[];
+            final remainingKeys = <String>[];
+            for (final toolName in parsed.toolNames) {
+              final key = json.encode({
+                'tool': toolName,
+                'params': parsed.params[toolName] ?? const <String, dynamic>{},
+              });
+              if (attemptedCalls.contains(key)) continue;
+              remaining.add(toolName);
+              remainingKeys.add(key);
+            }
 
-          final toolResponses = await _toolRunner.runTools(
-            filteredParsed,
-            toolRegistry,
-          );
+            if (remaining.isEmpty) {
+              // Model re-requested only already-attempted tools. Return with
+              // whatever we have so we don't burn more LLM calls.
+              final successMessages = observations
+                  .where((o) => o['success'] == true)
+                  .map((o) => (o['message'] ?? '').toString())
+                  .where((m) => m.isNotEmpty)
+                  .toList();
+              final content = successMessages.isNotEmpty
+                  ? successMessages.join('\n')
+                  : kLLMResponseOnFailure;
+              final exhausted = AgentMessage(
+                content: content,
+                isFromAgent: true,
+                generatedAt: DateTime.now(),
+                data: observations.isNotEmpty
+                    ? {'observations': observations}
+                    : null,
+              );
+              if (saveUser) await saveUserMessage();
+              if (persistTerminal) await saveAgentMessage(exhausted);
+              yield AgentStreamChunk.done(AgentResult.message(exhausted));
+              return;
+            }
 
-          for (final r in toolResponses) {
-            observations.add({
-              'tool': r.toolName,
-              'success': r.isRequestSuccessful,
-              'message': r.message,
-              if (r.data != null) 'data': r.data,
-            });
-          }
+            // Mark as attempted BEFORE running so an exception mid-flight still
+            // blocks a naive retry of the same call.
+            attemptedCalls.addAll(remainingKeys);
 
-          final needsFurtherReasoning = toolResponses.any(
-            (r) => r.needsFurtherReasoning,
-          );
+            final filteredParsed = PromptParserResult(
+              outcome: ParseOutcome.tools,
+              toolNames: remaining,
+              params: {
+                for (final t in remaining)
+                  t: parsed.params[t] ?? const <String, dynamic>{},
+              },
+              agentNames: parsed.agentNames,
+              rawOutput: parsed.rawOutput,
+            );
 
-          if (needsFurtherReasoning) {
-            return _reasonUsingData(userMessage.content, toolResponses);
-          }
+            final toolResponses = await _toolRunner.runTools(
+              filteredParsed,
+              toolRegistry,
+              context: toolContext,
+            );
 
-          // Build a follow-up prompt with an explicit succeeded/failed split
-          // so the LLM knows exactly what remains and what NOT to repeat.
-          currentPrompt = _buildObservationPrompt(
-            originalPrompt: prompt,
-            observations: observations,
-          );
+            for (final r in toolResponses) {
+              observations.add({
+                'tool': r.toolName,
+                'success': r.isRequestSuccessful,
+                'message': r.message,
+                if (r.data != null) 'data': r.data,
+              });
+            }
 
-        case ParseOutcome.unparseable:
-          // All parse retries exhausted in _llmGenerateWithParseRetry
-          throw ResponseParseException(
-            'LLM output remained unparseable after retries',
-            rawOutput: parsed.rawOutput ?? '',
-          );
+            final needsFurtherReasoning = toolResponses.any(
+              (r) => r.needsFurtherReasoning,
+            );
+
+            if (needsFurtherReasoning) {
+              final reasoned = await _reasonUsingData(
+                userMessage.content,
+                toolResponses,
+              );
+              if (saveUser) await saveUserMessage();
+              if (persistTerminal) await saveAgentMessage(reasoned);
+              yield AgentStreamChunk.done(AgentResult.message(reasoned));
+              return;
+            }
+
+            // Build a follow-up prompt with an explicit succeeded/failed split
+            // so the LLM knows exactly what remains and what NOT to repeat.
+            currentPrompt = _buildObservationPrompt(
+              originalPrompt: prompt,
+              observations: observations,
+            );
+
+          case ParseOutcome.unparseable:
+            // All parse retries exhausted in _llmGenerateWithParseRetry
+            throw ResponseParseException(
+              'LLM output remained unparseable after retries',
+              rawOutput: parsed.rawOutput ?? '',
+            );
+        }
       }
-    }
 
-    // Max iterations reached — synthesize from what we have
-    if (observations.isNotEmpty) {
-      final summary = observations.map((o) => o['message'] ?? '').join('\n');
-      return AgentMessage(
-        content: summary.isEmpty ? kLLMResponseOnFailure : summary,
-        isFromAgent: true,
-        generatedAt: DateTime.now(),
-        data: {'observations': observations},
+      // Max iterations reached — synthesize from what we have
+      final fallback = observations.isNotEmpty
+          ? AgentMessage(
+              content:
+                  observations.map((o) => o['message'] ?? '').join('\n').isEmpty
+                  ? kLLMResponseOnFailure
+                  : observations.map((o) => o['message'] ?? '').join('\n'),
+              isFromAgent: true,
+              generatedAt: DateTime.now(),
+              data: {'observations': observations},
+            )
+          : AgentMessage(
+              content: kLLMResponseOnFailure,
+              isFromAgent: true,
+              generatedAt: DateTime.now(),
+            );
+      if (saveUser) await saveUserMessage();
+      if (persistTerminal) await saveAgentMessage(fallback);
+      yield AgentStreamChunk.done(AgentResult.message(fallback));
+      return;
+    } on CancelledException {
+      if (propagateCancel) rethrow;
+      final cancelled = _cancelledMessage();
+      if (saveUser) await saveUserMessage();
+      if (persistTerminal) await saveAgentMessage(cancelled);
+      yield AgentStreamChunk.done(AgentResult.message(cancelled));
+      return;
+    } on YaseenAiAgentException catch (e, st) {
+      onError?.call(e, st);
+      if (failureMode == FailureMode.throwError) rethrow;
+      final graceful = _gracefulMessage();
+      if (saveUser) await saveUserMessage();
+      if (persistTerminal) await saveAgentMessage(graceful);
+      yield AgentStreamChunk.done(AgentResult.message(graceful));
+      return;
+    } catch (e, st) {
+      final wrapped = LlmException(
+        'Unexpected error: $e',
+        cause: e,
+        causeStack: st,
       );
+      onError?.call(wrapped, st);
+      if (failureMode == FailureMode.throwError) throw wrapped;
+      final graceful = _gracefulMessage();
+      if (saveUser) await saveUserMessage();
+      if (persistTerminal) await saveAgentMessage(graceful);
+      yield AgentStreamChunk.done(AgentResult.message(graceful));
+      return;
     }
-
-    return AgentMessage(
-      content: kLLMResponseOnFailure,
-      isFromAgent: true,
-      generatedAt: DateTime.now(),
-    );
   }
 
-  /// Calls the LLM and retries with a corrective instruction on parse failure.
-  Future<PromptParserResult> _llmGenerateWithParseRetry({
-    required String prompt,
-    Uint8List? rawData,
-    List<Tool>? tools,
-  }) async {
-    var currentPrompt = prompt;
-    for (var attempt = 0; attempt <= kMaxParseRetries; attempt++) {
-      final raw = await llm.generate(
-        prompt: currentPrompt,
-        systemInstruction: _promptBuilder.systemInstruction,
-        rawData: attempt == 0 ? rawData : null,
-        tools: tools,
-      );
-      final parsed = _promptParser.parse(raw);
-      if (parsed.outcome != ParseOutcome.unparseable) return parsed;
+  /// Returns the first requested tool gated by [ToolApproval.requireApproval],
+  /// if any. Unknown tools are left for [ToolRunner] to reject.
+  String? _firstGatedTool(List<String> toolNames) {
+    for (final toolName in toolNames) {
+      final tool = toolRegistry.getTool(toolName);
+      if (tool != null && tool.approval == ToolApproval.requireApproval) {
+        return toolName;
+      }
+    }
+    return null;
+  }
 
-      // Append corrective instruction for retry
-      currentPrompt = '$prompt\n\n$kParseRetryInstruction';
+  /// Pauses the turn before a gated tool runs: validates parameters now,
+  /// stores the resumable state, and yields the pending approval as a stream.
+  Stream<AgentStreamChunk> _pauseForApproval({
+    required String toolName,
+    required PromptParserResult parsed,
+    required String convoId,
+    required AgentMessage userMessage,
+    required int memoryLimit,
+    Object? metaData,
+    required bool saveUser,
+    required Set<String> attemptedCalls,
+    required int step,
+  }) async* {
+    final tool = toolRegistry.getTool(toolName)!;
+    final rawParams = parsed.params[toolName] ?? const <String, dynamic>{};
+    final validation = validateParams(tool.parameters, rawParams);
+    if (!validation.isValid) {
+      throw ToolExecutionException(
+        toolName,
+        'Parameter validation failed for tool $toolName: '
+        '${validation.errors.join("; ")}',
+      );
+    }
+    final approval = PendingApproval(
+      id: const Uuid().v4(),
+      toolName: toolName,
+      params: validation.values,
+      convoId: convoId,
+    );
+    _pendings[approval.id] = _PendingState(
+      convoId: convoId,
+      userMessage: userMessage,
+      memoryLimit: memoryLimit,
+      metaData: metaData,
+      toolName: toolName,
+      params: validation.values,
+      attemptedKeys: Set<String>.from(attemptedCalls),
+      stepsUsed: step + 1,
+    );
+    if (saveUser) {
+      await _memoryManager.saveMessage(
+        convoId,
+        userMessage,
+        metaData: metaData,
+      );
+    }
+    yield AgentStreamChunk.done(AgentResult.pendingApproval(approval));
+  }
+
+  /// Forwards one chained sub-turn: text deltas pass through, the sub-turn's
+  /// terminal chunk is captured by the caller. A sub-turn approval pause
+  /// propagates upward (resumable via scope routing in [resumeWithApproval]).
+  Stream<AgentStreamChunk> _handleAgentChainStream({
+    required PromptParserResult parsed,
+    required String convoId,
+    required AgentMessage userMessage,
+    required int memoryLimit,
+    Object? metaData,
+    CancellationToken? cancelToken,
+    Set<String>? visited,
+    int depth = 0,
+  }) async* {
+    final agentsChain = List<String>.of(parsed.agentNames);
+    String? inputForNextStep;
+    AgentMessage? lastResponse;
+    final visitedSet = visited ?? <String>{name};
+
+    while (agentsChain.isNotEmpty) {
+      final agentName = agentsChain.removeAt(0);
+
+      if (visitedSet.contains(agentName)) {
+        throw ConfigException(
+          'Cycle detected in agent chain: $agentName has already been visited '
+          '(path: ${visitedSet.join(" → ")} → $agentName)',
+        );
+      }
+
+      if (depth >= kMaxChainDepth) {
+        throw ConfigException(
+          'Agent chain depth limit ($kMaxChainDepth) exceeded at agent $agentName',
+        );
+      }
+
+      final agent = _AgentRegistry.instance.getAgent(agentName, scope: _scope);
+
+      if (agent == null) {
+        throw AgentNotFoundException(agentName);
+      }
+
+      visitedSet.add(agentName);
+
+      AgentResult? subTerminal;
+      await for (final chunk in agent._turnStream(
+        convoId: convoId,
+        userMessage: userMessage,
+        memoryLimit: memoryLimit,
+        metaData: metaData,
+        saveUser: false,
+        persistTerminal: false,
+        isPartOfChain: true,
+        input: inputForNextStep,
+        chainVisited: visitedSet,
+        chainDepth: depth + 1,
+        cancelToken: cancelToken,
+        propagateCancel: true,
+      )) {
+        if (chunk is AgentTextChunk) {
+          yield chunk;
+        } else if (chunk is AgentDoneChunk) {
+          subTerminal = chunk.result;
+        }
+      }
+      if (subTerminal is AgentPendingResult) {
+        yield AgentStreamChunk.done(subTerminal);
+        return;
+      }
+      final message = (subTerminal as AgentMessageResult).message;
+      lastResponse = message;
+      inputForNextStep = message.data != null
+          ? json.encode(message.data)
+          : message.content;
     }
 
-    // Return unparseable after all retries exhausted
-    return PromptParserResult(
-      outcome: ParseOutcome.unparseable,
-      agentNames: [],
-      toolNames: [],
-      params: {},
-      rawOutput: currentPrompt,
-    );
+    if (lastResponse == null) {
+      yield AgentStreamChunk.done(AgentResult.message(_gracefulMessage()));
+      return;
+    }
+    yield AgentStreamChunk.done(AgentResult.message(lastResponse));
   }
 
   String _buildObservationPrompt({
@@ -460,63 +875,6 @@ class Agent {
     }
 
     return buffer.toString().trim();
-  }
-
-  Future<AgentMessage> _handleAgentChain({
-    required PromptParserResult parsed,
-    required String convoId,
-    required AgentMessage userMessage,
-    required int memoryLimit,
-    Object? metaData,
-    Set<String>? visited,
-    int depth = 0,
-  }) async {
-    List<String> agentsChain = parsed.agentNames;
-    String? inputForNextStep;
-    AgentMessage? agentResponse;
-    final visitedSet = visited ?? <String>{name};
-
-    while (agentsChain.isNotEmpty) {
-      final agentName = agentsChain.removeAt(0);
-
-      if (visitedSet.contains(agentName)) {
-        throw ConfigException(
-          'Cycle detected in agent chain: $agentName has already been visited '
-          '(path: ${visitedSet.join(" → ")} → $agentName)',
-        );
-      }
-
-      if (depth >= kMaxChainDepth) {
-        throw ConfigException(
-          'Agent chain depth limit ($kMaxChainDepth) exceeded at agent $agentName',
-        );
-      }
-
-      final agent = _AgentRegistry.instance.getAgent(agentName, scope: _scope);
-
-      if (agent == null) {
-        throw AgentNotFoundException(agentName);
-      }
-
-      visitedSet.add(agentName);
-
-      agentResponse = await agent._generateResponse(
-        convoId: convoId,
-        userMessage: userMessage,
-        memoryLimit: memoryLimit,
-        metaData: metaData,
-        isPartOfChain: true,
-        input: inputForNextStep,
-        chainVisited: visitedSet,
-        chainDepth: depth + 1,
-      );
-
-      inputForNextStep = agentResponse.data != null
-          ? json.encode(agentResponse.data)
-          : agentResponse.content;
-    }
-
-    return agentResponse!;
   }
 
   /// Get messages for a specific conversation from the datastore.
@@ -593,4 +951,30 @@ class Agent {
 
   @override
   String toString() => 'Agent(name: $name, role: $role)';
+}
+
+/// Resumable loop state stored when a turn pauses for approval.
+///
+/// The user message is persisted at pause time; the agent message is
+/// persisted when the resumed turn terminates.
+class _PendingState {
+  final String convoId;
+  final AgentMessage userMessage;
+  final int memoryLimit;
+  final Object? metaData;
+  final String toolName;
+  final Map<String, dynamic> params;
+  final Set<String> attemptedKeys;
+  final int stepsUsed;
+
+  _PendingState({
+    required this.convoId,
+    required this.userMessage,
+    required this.memoryLimit,
+    this.metaData,
+    required this.toolName,
+    required this.params,
+    required this.attemptedKeys,
+    required this.stepsUsed,
+  });
 }
