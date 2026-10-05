@@ -13,8 +13,6 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
-  # TODO(phase-1): delete with the _gemini.dart Dio-REST rewrite.
-  google_generative_ai: ^0.4.7
   uuid: ^4.6.0
   dio: ^5.11.1
 

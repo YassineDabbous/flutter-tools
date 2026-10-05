@@ -7,8 +7,9 @@ class ToolRunner {
   /// Runs the tools based on the parsed result from the PromptParser.
   Future<List<ToolResponse>> runTools(
     PromptParserResult result,
-    ToolRegistry registry,
-  ) async {
+    ToolRegistry registry, {
+    ToolContext context = const ToolContext(),
+  }) async {
     final List<ToolResponse> responses = [];
 
     for (final toolName in result.toolNames) {
@@ -28,7 +29,7 @@ class ToolRunner {
       }
 
       try {
-        final output = await tool.run(validation.values);
+        final output = await tool.runWithContext(validation.values, context);
         responses.add(output);
       } catch (e, st) {
         if (e is YaseenAiAgentException) rethrow;

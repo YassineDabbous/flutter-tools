@@ -4,6 +4,7 @@
 // The run method is an abstract method that must be implemented by all tools.
 
 import 'package:yaseen_ai_agent/src/tools/param_spec.dart';
+import 'package:yaseen_ai_agent/src/tools/tool_context.dart';
 import 'package:yaseen_ai_agent/src/tools/tool_response.dart';
 
 /// The Tool class is an abstract class that defines the structure and behavior of a tool.
@@ -35,4 +36,12 @@ abstract class Tool {
   /// but it cannot detect semantically-equivalent calls with different
   /// parameter shapes, so this contract is the final line of defence.
   Future<ToolResponse> run(Map<String, dynamic> params);
+
+  /// Context-aware entry point used by the framework. Defaults to [run] so
+  /// existing tools compile untouched; override when the tool needs the
+  /// [ToolContext] (cancellation, tracing).
+  Future<ToolResponse> runWithContext(
+    Map<String, dynamic> params,
+    ToolContext context,
+  ) => run(params);
 }

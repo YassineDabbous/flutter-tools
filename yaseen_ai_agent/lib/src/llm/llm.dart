@@ -1,20 +1,55 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:yaseen_ai_agent/src/llm/_anthropic.dart';
 import 'package:yaseen_ai_agent/src/llm/_cohere.dart';
 import 'package:yaseen_ai_agent/src/llm/_gemini.dart';
+import 'package:yaseen_ai_agent/src/llm/_ollama.dart';
 import 'package:yaseen_ai_agent/src/llm/_openai.dart';
 import 'package:yaseen_ai_agent/src/llm/llm_config.dart';
+import 'package:yaseen_ai_agent/src/tools/tool.dart';
+import 'package:dio/dio.dart';
 
 /// The LLM interface defines the contract for all large language models used in the agent.
 abstract class LLM {
   /// Generates a response based on the provided prompt and optional raw data.
+  ///
+  /// When [tools] is non-empty and [supportsNativeTools] is true, the
+  /// provider sends them as native function declarations and serializes any
+  /// native tool call back into the canonical JSON-text contract
+  /// (`{"tools": ..., "parameters": ...}`) so the agent parser stays uniform.
+  /// Providers without native support ignore [tools] (the prompt already
+  /// carries the specs in fallback mode).
   Future<String> generate({
     required String prompt,
     String? systemInstruction,
     Uint8List? rawData,
-    String mimeType,
+    String mimeType = 'image/jpeg',
+    List<Tool>? tools,
   });
+
+  /// Streams partial text deltas. Default implementation yields a single chunk
+  /// from [generate]; providers with SSE/NDJSON override for true streaming.
+  /// When native [tools] resolve to a tool call, implementations yield the
+  /// canonical JSON once (still a valid stream).
+  Stream<String> generateStream({
+    required String prompt,
+    String? systemInstruction,
+    Uint8List? rawData,
+    String mimeType = 'image/jpeg',
+    List<Tool>? tools,
+  }) async* {
+    yield await generate(
+      prompt: prompt,
+      systemInstruction: systemInstruction,
+      rawData: rawData,
+      mimeType: mimeType,
+      tools: tools,
+    );
+  }
+
+  /// Whether this provider sends [tools] natively instead of via prompt JSON.
+  bool get supportsNativeTools;
 
   /// Returns the unique identifier for the model.
   String get modelId;
@@ -23,16 +58,20 @@ abstract class LLM {
   LlmConfig get config;
 
   /// Creates a Gemini-backed [LLM] instance.
+  ///
+  /// [client] is test-only: inject a fake [Dio] to answer without network.
   static LLM geminiLLM({
     required String apiKey,
     required String modelName,
     LlmConfig config = const LlmConfig(),
     Object? safetySettings,
+    Dio? client,
   }) => Gemini(
     apiKey: apiKey,
     modelName: modelName,
     config: config,
     safetySettings: safetySettings,
+    client: client,
   );
 
   /// Creates an Anthropic (Claude) backed [LLM] instance.
@@ -48,18 +87,38 @@ abstract class LLM {
   ///
   /// [modelName] is e.g. `gpt-4o`. Pass [baseUrl] to use an OpenAI-compatible
   /// endpoint such as DeepSeek, Grok, Groq, or OpenRouter.
+  /// [client] is test-only: inject a fake [Dio] to answer without network.
   static LLM openAiLLM({
     required String apiKey,
     required String modelName,
     LlmConfig config = const LlmConfig(),
     String baseUrl = 'https://api.openai.com/v1',
     Map<String, String> extraHeaders = const {},
+    Dio? client,
   }) => OpenAI(
     apiKey: apiKey,
     modelName: modelName,
     config: config,
     baseUrl: baseUrl,
     extraHeaders: extraHeaders,
+    client: client,
+  );
+
+  /// Creates an Ollama-backed [LLM] instance for local development.
+  ///
+  /// [modelName] is e.g. `llama3.1:8b`. [baseUrl] defaults to the standard
+  /// local daemon (`http://localhost:11434/v1`, OpenAI-compatible). Weak local
+  /// models use the JSON-text fallback path with repair retries.
+  static LLM ollamaLLM({
+    required String modelName,
+    LlmConfig config = const LlmConfig(timeout: Duration(seconds: 120)),
+    String baseUrl = 'http://localhost:11434/v1',
+    Dio? client,
+  }) => Ollama(
+    modelName: modelName,
+    config: config,
+    baseUrl: baseUrl,
+    client: client,
   );
 
   /// Creates a DeepSeek-backed [LLM] instance.

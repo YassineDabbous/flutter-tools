@@ -22,6 +22,10 @@ class _PromptBuilder {
     required AgentMessage userMessage,
     bool isPartOfChain = false,
     String? input,
+
+    /// False in native function-calling mode: full specs travel in the API
+    /// payload, so the prompt stays lean. True keeps the JSON-text contract.
+    bool includeTools = true,
   }) {
     final buffer = StringBuffer();
 
@@ -50,10 +54,17 @@ class _PromptBuilder {
         );
       }
     }
-
-    // --- Available tools (as a JSON array) ---
+    // --- Available tools (as a JSON array, or native in lean mode) ---
     final tools = registry.getAllTools();
-    if (tools.isNotEmpty) {
+    if (tools.isEmpty) {
+      buffer.writeln('Available Tools: none\n');
+    } else if (!includeTools) {
+      buffer.writeln(
+        'Available Tools: ${tools.map((t) => t.name).join(", ")} '
+        '(provided natively — invoke them via function calling with exact '
+        'parameter names; never invent tool names)\n',
+      );
+    } else {
       final toolSpecs = tools
           .map(
             (tool) => {
@@ -64,13 +75,19 @@ class _PromptBuilder {
           )
           .toList();
       buffer.writeln('Available Tools: ${json.encode(toolSpecs)}\n');
-    } else {
-      buffer.writeln('Available Tools: none\n');
     }
 
     // --- Output format specification ---
-    buffer.writeln(
-      '''
+    if (!includeTools) {
+      buffer.writeln('''
+Output format — EITHER invoke the provided functions (preferred when a tool
+matches), OR reply with ONLY a single JSON object, no prose, no markdown
+fences:
+
+{"response": "<your answer>"}''');
+    } else {
+      buffer.writeln(
+        '''
 Output format — reply with ONLY a single JSON object, no prose, no markdown fences.
 
 If you can answer directly:
@@ -78,7 +95,8 @@ If you can answer directly:
 
 If tools should be used:
 {"tools": "<tool_name1>, <tool_name2>", "parameters": {"<tool_name1>": {"<param>": "<value>"}}}''',
-    );
+      );
+    }
 
     if (!isPartOfChain) {
       buffer.writeln('''

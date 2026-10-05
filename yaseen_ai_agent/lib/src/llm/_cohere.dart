@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:yaseen_ai_agent/src/llm/llm.dart';
 import 'package:yaseen_ai_agent/src/llm/llm_config.dart';
 import 'package:yaseen_ai_agent/src/static/yaseen_ai_agent_exceptions.dart';
+import 'package:yaseen_ai_agent/src/tools/tool.dart';
 import 'package:dio/dio.dart';
 
 /// Cohere LLM implementation backed by the v2 Chat API.
@@ -44,11 +45,15 @@ class Cohere extends LLM {
   LlmConfig get config => _config;
 
   @override
+  bool get supportsNativeTools => false;
+
+  @override
   Future<String> generate({
     required String prompt,
     String? systemInstruction,
     Uint8List? rawData,
     String mimeType = 'image/jpeg',
+    List<Tool>? tools,
   }) async {
     if (rawData != null) {
       throw const LlmException(

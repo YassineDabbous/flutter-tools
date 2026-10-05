@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import 'package:yaseen_ai_agent/src/llm/llm.dart';
 import 'package:yaseen_ai_agent/src/llm/llm_config.dart';
 import 'package:yaseen_ai_agent/src/static/yaseen_ai_agent_exceptions.dart';
+import 'package:yaseen_ai_agent/src/tools/tool.dart';
 import 'package:dio/dio.dart';
 
 /// Anthropic (Claude) LLM implementation backed by the Messages API.
@@ -47,11 +48,15 @@ class Anthropic extends LLM {
   LlmConfig get config => _config;
 
   @override
+  bool get supportsNativeTools => false;
+
+  @override
   Future<String> generate({
     required String prompt,
     String? systemInstruction,
     Uint8List? rawData,
     String mimeType = 'image/jpeg',
+    List<Tool>? tools,
   }) async {
     try {
       final messages = _buildMessages(prompt, rawData, mimeType);

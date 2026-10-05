@@ -136,7 +136,11 @@ class Agent {
   }
 
   /// Generate a response to the user message. This is the public facing method.
-  Future<AgentMessage> generateResponse({
+  ///
+  /// When the LLM supports native function calling, tool specs travel in the
+  /// API payload and the prompt stays lean; otherwise the JSON-text fallback
+  /// contract is used. Either way tool calls arrive as [PromptParserResult].
+  Future<AgentMessage> generate({
     required String convoId,
     required AgentMessage userMessage,
     int memoryLimit = 10,
@@ -186,6 +190,20 @@ class Agent {
     }
   }
 
+  /// Deprecated: use [generate] instead. Delegates without behavior change.
+  @Deprecated('Use generate() instead')
+  Future<AgentMessage> generateResponse({
+    required String convoId,
+    required AgentMessage userMessage,
+    int memoryLimit = 10,
+    Object? metaData,
+  }) => generate(
+    convoId: convoId,
+    userMessage: userMessage,
+    memoryLimit: memoryLimit,
+    metaData: metaData,
+  );
+
   Future<AgentMessage> _generateResponse({
     required String convoId,
     required AgentMessage userMessage,
@@ -202,12 +220,20 @@ class Agent {
       metaData: metaData,
     );
 
+    // Hybrid tool protocol: native-capable LLMs receive specs out-of-band and
+    // get a lean prompt; everyone else gets the full JSON-text contract.
+    final nativeTools =
+        llm.supportsNativeTools && toolRegistry.getAllTools().isNotEmpty
+        ? toolRegistry.getAllTools()
+        : null;
+
     final prompt = _promptBuilder.buildTextPrompt(
       memoryMessages: messages,
       contextSummary: summary,
       userMessage: userMessage,
       isPartOfChain: isPartOfChain,
       input: input,
+      includeTools: nativeTools == null,
     );
 
     // Accumulated tool observations for multi-step tool use.
@@ -223,6 +249,7 @@ class Agent {
       final parsed = await _llmGenerateWithParseRetry(
         prompt: currentPrompt,
         rawData: isFirstCall ? userMessage.imageData : null,
+        tools: nativeTools,
       );
       isFirstCall = false;
 
@@ -361,6 +388,7 @@ class Agent {
   Future<PromptParserResult> _llmGenerateWithParseRetry({
     required String prompt,
     Uint8List? rawData,
+    List<Tool>? tools,
   }) async {
     var currentPrompt = prompt;
     for (var attempt = 0; attempt <= kMaxParseRetries; attempt++) {
@@ -368,6 +396,7 @@ class Agent {
         prompt: currentPrompt,
         systemInstruction: _promptBuilder.systemInstruction,
         rawData: attempt == 0 ? rawData : null,
+        tools: tools,
       );
       final parsed = _promptParser.parse(raw);
       if (parsed.outcome != ParseOutcome.unparseable) return parsed;
