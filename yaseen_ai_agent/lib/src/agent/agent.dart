@@ -475,14 +475,30 @@ class Agent {
           ? toolRegistry.getAllTools()
           : null;
 
-      final prompt = _promptBuilder.buildTextPrompt(
-        memoryMessages: messages,
-        contextSummary: summary,
-        userMessage: userMessage,
-        isPartOfChain: isPartOfChain,
-        input: input,
-        includeTools: nativeTools == null,
-      );
+      // Structured wire providers (e.g. the Rebelo AI proxy) receive
+      // role/content messages instead of one flattened text prompt.
+      final structured = llm.prefersStructuredHistory;
+
+      final prompt = structured
+          ? ''
+          : _promptBuilder.buildTextPrompt(
+              memoryMessages: messages,
+              contextSummary: summary,
+              userMessage: userMessage,
+              isPartOfChain: isPartOfChain,
+              input: input,
+              includeTools: nativeTools == null,
+            );
+
+      // Structured providers skip the flattened prompt: history travels as
+      // wire messages and only the tail evolves across tool rounds.
+      final baseTail = structured
+          ? _promptBuilder.buildStructuredTail(
+              input: input,
+              isPartOfChain: isPartOfChain,
+              userContent: userMessage.content,
+            )
+          : '';
 
       // Accumulated tool observations for multi-step tool use.
       final observations = <Map<String, dynamic>>[...?initialObservations];
@@ -496,6 +512,9 @@ class Agent {
               originalPrompt: prompt,
               observations: observations,
             );
+      var currentTail = observations.isEmpty
+          ? baseTail
+          : '$baseTail${_observationBlock(observations)}'.trim();
       var isFirstCall = initialObservations == null;
       final toolContext = ToolContext(
         metaData: metaData,
@@ -514,28 +533,46 @@ class Agent {
           agentNames: const <String>[],
           toolNames: const <String>[],
           params: const <String, Map<String, dynamic>>{},
-          rawOutput: currentPrompt,
+          rawOutput: structured ? currentTail : currentPrompt,
         );
         var attemptPrompt = currentPrompt;
+        var attemptTail = currentTail;
         for (var attempt = 0; attempt <= kMaxParseRetries; attempt++) {
           if (cancelToken?.isCancelled ?? false) {
             throw const CancelledException();
           }
           final buffer = StringBuffer();
-          await for (final delta in llm.generateStream(
-            prompt: attemptPrompt,
-            systemInstruction: _promptBuilder.systemInstruction,
-            rawData: (attempt == 0 && isFirstCall)
-                ? userMessage.imageData
-                : null,
-            tools: nativeTools,
-          )) {
+          await for (final delta
+              in structured
+                  ? llm.generateStreamWithMessages(
+                      messages: _promptBuilder.buildWireMessages(
+                        memoryMessages: messages,
+                        contextSummary: summary,
+                        systemInstruction: _promptBuilder.systemInstruction,
+                        tail: attemptTail,
+                        isPartOfChain: isPartOfChain,
+                        includeTools: nativeTools == null,
+                      ),
+                      rawData: (attempt == 0 && isFirstCall)
+                          ? userMessage.imageData
+                          : null,
+                      tools: nativeTools,
+                    )
+                  : llm.generateStream(
+                      prompt: attemptPrompt,
+                      systemInstruction: _promptBuilder.systemInstruction,
+                      rawData: (attempt == 0 && isFirstCall)
+                          ? userMessage.imageData
+                          : null,
+                      tools: nativeTools,
+                    )) {
             buffer.write(delta);
             yield AgentStreamChunk.text(delta);
           }
           parsed = _promptParser.parse(buffer.toString());
           if (parsed.outcome != ParseOutcome.unparseable) break;
           attemptPrompt = '$currentPrompt\n\n$kParseRetryInstruction';
+          attemptTail = '$currentTail\n\n$kParseRetryInstruction';
         }
         isFirstCall = false;
 
@@ -619,6 +656,8 @@ class Agent {
                   originalPrompt: prompt,
                   observations: observations,
                 );
+                currentTail = '$baseTail${_observationBlock(observations)}'
+                    .trim();
                 continue;
               }
               yield* _pauseForApproval(
@@ -720,6 +759,8 @@ class Agent {
                 originalPrompt: prompt,
                 observations: observations,
               );
+              currentTail = '$baseTail${_observationBlock(observations)}'
+                  .trim();
               continue;
             }
 
@@ -788,6 +829,7 @@ class Agent {
               originalPrompt: prompt,
               observations: observations,
             );
+            currentTail = '$baseTail${_observationBlock(observations)}'.trim();
 
           case ParseOutcome.unparseable:
             // All parse retries exhausted in _llmGenerateWithParseRetry
@@ -866,10 +908,9 @@ class Agent {
     final parts = <String>[];
     for (final p in tool.parameters) {
       final req = p.required ? 'required' : 'optional';
-      final enums =
-          p.enumValues != null && p.enumValues!.isNotEmpty
-              ? ', one of: ${p.enumValues!.join(', ')}'
-              : '';
+      final enums = p.enumValues != null && p.enumValues!.isNotEmpty
+          ? ', one of: ${p.enumValues!.join(', ')}'
+          : '';
       parts.add('${p.name} ($req$enums)');
     }
     return parts.join('; ');
@@ -1024,11 +1065,16 @@ class Agent {
   String _buildObservationPrompt({
     required String originalPrompt,
     required List<Map<String, dynamic>> observations,
-  }) {
+  }) => '$originalPrompt${_observationBlock(observations)}'.trim();
+
+  /// The tool-results section appended to a turn prompt (text) or tail
+  /// (structured) after each tool round. Extracted so both prompt paths
+  /// share one implementation.
+  static String _observationBlock(List<Map<String, dynamic>> observations) {
     final succeeded = observations.where((o) => o['success'] == true).toList();
     final failed = observations.where((o) => o['success'] != true).toList();
 
-    final buffer = StringBuffer(originalPrompt);
+    final buffer = StringBuffer();
     buffer.writeln('\n\nTool execution results so far:');
 
     if (succeeded.isNotEmpty) {
@@ -1065,7 +1111,7 @@ class Agent {
       );
     }
 
-    return buffer.toString().trim();
+    return buffer.toString();
   }
 
   /// Get messages for a specific conversation from the datastore.

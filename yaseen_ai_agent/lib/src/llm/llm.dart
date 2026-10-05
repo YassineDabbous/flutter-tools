@@ -3,9 +3,11 @@ import 'dart:typed_data';
 
 import 'package:yaseen_ai_agent/src/llm/_anthropic.dart';
 import 'package:yaseen_ai_agent/src/llm/_cohere.dart';
+import 'package:yaseen_ai_agent/src/llm/_custom.dart';
 import 'package:yaseen_ai_agent/src/llm/_gemini.dart';
 import 'package:yaseen_ai_agent/src/llm/_ollama.dart';
 import 'package:yaseen_ai_agent/src/llm/_openai.dart';
+import 'package:yaseen_ai_agent/src/llm/_rebelo_proxy.dart';
 import 'package:yaseen_ai_agent/src/llm/llm_config.dart';
 import 'package:yaseen_ai_agent/src/tools/tool.dart';
 import 'package:dio/dio.dart';
@@ -50,6 +52,56 @@ abstract class LLM {
 
   /// Whether this provider sends [tools] natively instead of via prompt JSON.
   bool get supportsNativeTools;
+
+  /// Whether this provider prefers structured `role`/`content` messages over
+  /// the flattened text [prompt].
+  ///
+  /// When true, the agent calls [generateWithMessages] /
+  /// [generateStreamWithMessages] instead of [generate] / [generateStream].
+  /// Defaults to false: legacy single-prompt providers are unaffected.
+  bool get prefersStructuredHistory => false;
+
+  /// Structured-messages variant of [generate].
+  ///
+  /// The default implementation flattens `system` roles into
+  /// [generate]'s `systemInstruction` and renders the rest as
+  /// `role: content` lines, so providers that only implement the legacy path
+  /// keep working unchanged.
+  Future<String> generateWithMessages({
+    required List<Map<String, String>> messages,
+    Uint8List? rawData,
+    String mimeType = 'image/jpeg',
+    List<Tool>? tools,
+  }) {
+    final flat = flattenChatMessages(messages);
+    return generate(
+      prompt: flat.prompt,
+      systemInstruction: flat.system.isEmpty ? null : flat.system,
+      rawData: rawData,
+      mimeType: mimeType,
+      tools: tools,
+    );
+  }
+
+  /// Structured-messages variant of [generateStream].
+  ///
+  /// Same flattening default as [generateWithMessages]; structured providers
+  /// override for true message-based streaming.
+  Stream<String> generateStreamWithMessages({
+    required List<Map<String, String>> messages,
+    Uint8List? rawData,
+    String mimeType = 'image/jpeg',
+    List<Tool>? tools,
+  }) async* {
+    final flat = flattenChatMessages(messages);
+    yield* generateStream(
+      prompt: flat.prompt,
+      systemInstruction: flat.system.isEmpty ? null : flat.system,
+      rawData: rawData,
+      mimeType: mimeType,
+      tools: tools,
+    );
+  }
 
   /// Returns the unique identifier for the model.
   String get modelId;
@@ -193,4 +245,42 @@ abstract class LLM {
     required String modelName,
     LlmConfig config = const LlmConfig(),
   }) => Cohere(apiKey: apiKey, modelName: modelName, config: config);
+
+  /// Creates a custom [LLM] from plain callbacks, without subclassing.
+  ///
+  /// Provide [generate] and/or [generateWithMessages]; the missing sides
+  /// derive via the base-class flattening rules. Streaming callbacks are
+  /// optional and fall back to single-chunk generation.
+  static LLM custom({
+    required String modelId,
+    LlmConfig config = const LlmConfig(),
+    bool supportsNativeTools = false,
+    bool prefersStructuredHistory = false,
+    LlmGenerateFn? generate,
+    LlmStreamFn? generateStream,
+    LlmMessagesGenerateFn? generateWithMessages,
+    LlmMessagesStreamFn? generateStreamWithMessages,
+  }) => DelegatingLLM(
+    modelId: modelId,
+    config: config,
+    supportsNativeTools: supportsNativeTools,
+    prefersStructuredHistory: prefersStructuredHistory,
+    generate: generate,
+    generateStream: generateStream,
+    generateWithMessages: generateWithMessages,
+    generateStreamWithMessages: generateStreamWithMessages,
+  );
+
+  /// Creates a Rebelo AI-proxy-backed [LLM] instance.
+  ///
+  /// Unlike the direct providers, authentication comes from the injected
+  /// [client] (the app's authenticated Dio: `Auth`/`Refresh` interceptors
+  /// attach the Sanctum token, `Tenant-Id`, and locale headers), so there is
+  /// no API key parameter. Pass the app Dio — or a fake Dio in tests.
+  /// [baseUrl] is only used when [client] is null, to build an owned client.
+  static LLM rebeloProxy({
+    Dio? client,
+    String? baseUrl,
+    LlmConfig config = const LlmConfig(timeout: Duration(seconds: 180)),
+  }) => RebeloProxy(client: client, baseUrl: baseUrl, config: config);
 }

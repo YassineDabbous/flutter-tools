@@ -28,3 +28,11 @@ const int kMaxPromptChars = 12000;
 
 /// Soft budget for the rolling summary section (characters).
 const int kMaxSummaryChars = 2000;
+
+/// Hard cap on the number of `role`/`content` messages per request for
+/// structured wire providers (matches the Rebelo AI proxy contract).
+const int kWireMaxMessages = 20;
+
+/// Hard cap on characters per `role`/`content` message for structured wire
+/// providers (matches the Rebelo AI proxy contract).
+const int kWireMaxChars = 4000;
