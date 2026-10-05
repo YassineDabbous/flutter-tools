@@ -1,6 +1,6 @@
 name: yaseen_ai_agent
 description: "Generic multi-provider AI agent runtime (Gemini, OpenAI-compatible, Ollama) with tool-calling, approvals, streaming and memory. Backend-agnostic building block for Rebelo assistant modules."
-version: 0.0.1
+version: 0.0.2
 homepage:
 publish_to: none
 
