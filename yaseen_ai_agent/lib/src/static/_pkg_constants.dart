@@ -14,3 +14,12 @@ const String kParseRetryInstruction =
 
 /// Maximum depth for agent chain delegation (prevents unbounded recursion).
 const int kMaxChainDepth = 5;
+
+/// Soft budget for one rendered text prompt (characters).
+///
+/// When exceeded, the builder truncates the rolling summary first, then drops
+/// the oldest history messages. Tool specs are never truncated.
+const int kMaxPromptChars = 12000;
+
+/// Soft budget for the rolling summary section (characters).
+const int kMaxSummaryChars = 2000;

@@ -70,6 +70,13 @@ class Agent {
     /// Inline system prompt. When provided, [pathToSystemData] is ignored and
     /// no asset bundle is touched (pure-Dart friendly).
     Map<String, dynamic>? systemData,
+
+    /// BCP-47 conversation locale (e.g. `ar-TN`) rendered into prompts and
+    /// merged into the system instruction.
+    String? locale,
+
+    /// Tool registry version advertised to the model.
+    String? toolsVersion,
     String pathToSystemData = 'assets/system_data.json',
     FailureMode failureMode = FailureMode.gracefulMessage,
     void Function(YaseenAiAgentException error, StackTrace stack)? onError,
@@ -98,6 +105,8 @@ class Agent {
         systemPrompt: resolvedSystemData,
         registry: registry,
         scope: resolvedScope,
+        locale: locale,
+        toolsVersion: toolsVersion,
       ),
       toolRegistry: registry,
       name: name,
