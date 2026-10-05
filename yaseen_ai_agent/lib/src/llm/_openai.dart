@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:yaseen_ai_agent/src/llm/_debug_log.dart';
 import 'package:yaseen_ai_agent/src/llm/_sse.dart';
 import 'package:yaseen_ai_agent/src/llm/_tool_schemas.dart';
 import 'package:yaseen_ai_agent/src/llm/llm.dart';
@@ -46,7 +47,11 @@ class OpenAI extends LLM {
                  ...extraHeaders,
                },
              ),
-           );
+           ) {
+    // Debug traffic only on owned clients (never injected fakes), and only
+    // in debug builds (attachDebugLogging no-ops in release).
+    if (client == null) attachDebugLogging(_client);
+  }
 
   @override
   String get modelId => _modelName;

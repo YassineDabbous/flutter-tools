@@ -4,6 +4,7 @@ import 'package:yaseen_ai_agent/src/static/_pkg_constants.dart';
 import 'package:yaseen_ai_agent/src/tools/_param_validator.dart';
 import 'package:yaseen_ai_agent/src/tools/_parser.dart';
 import 'package:yaseen_ai_agent/src/tools/_tool_runner.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
@@ -37,6 +38,10 @@ class Agent {
   /// Optional callback invoked when an error occurs, regardless of failure mode.
   final void Function(YaseenAiAgentException error, StackTrace stack)? onError;
 
+  /// Debug turn logging (prompts, tool calls, observations, outcomes).
+  /// Always additionally gated by `kDebugMode`: release builds stay silent.
+  final bool debugLog;
+
   final AgentScope _scope;
 
   Agent._internal({
@@ -49,9 +54,22 @@ class Agent {
     required this.failureMode,
     required AgentScope scope,
     this.onError,
+    this.debugLog = false,
   }) : _memoryManager = memoryManager,
        _promptBuilder = promptBuilder,
        _scope = scope;
+
+  /// Debug line, emitted only when [debugLog] is on AND in debug builds.
+  /// Prompts may carry user data — never enable outside development.
+  void _debug(Object? message) {
+    if (debugLog && kDebugMode) {
+      debugPrint('[yaseen_ai_agent:$name] $message');
+    }
+  }
+
+  /// Truncates long text for debug lines.
+  static String _truncate(String text, int max) =>
+      text.length <= max ? text : '${text.substring(0, max)}…[truncated]';
 
   /// Async factory constructor to create an instance with loaded system data.
   ///
@@ -70,6 +88,9 @@ class Agent {
     /// Inline system prompt. When provided, [pathToSystemData] is ignored and
     /// no asset bundle is touched (pure-Dart friendly).
     Map<String, dynamic>? systemData,
+
+    /// Debug turn logging (see [Agent.debugLog]). Development only.
+    bool debugLog = false,
 
     /// BCP-47 conversation locale (e.g. `ar-TN`) rendered into prompts and
     /// merged into the system instruction.
@@ -113,6 +134,7 @@ class Agent {
       role: role,
       failureMode: failureMode,
       onError: onError,
+      debugLog: debugLog,
       scope: resolvedScope,
     );
 
@@ -379,6 +401,35 @@ class Agent {
     isError: true,
   );
 
+  /// Persists a terminal message per the turn's save flags, logs the outcome,
+  /// and yields the closing chunk. Single funnel for all success terminals so
+  /// debug output and persistence cannot drift apart.
+  Stream<AgentStreamChunk> _finish({
+    required AgentMessage message,
+    required String convoId,
+    required AgentMessage userMessage,
+    Object? metaData,
+    required bool saveUser,
+    required bool persistTerminal,
+    required Stopwatch turnClock,
+  }) async* {
+    _debug(
+      'terminal message after ${turnClock.elapsedMilliseconds}ms: '
+      '${_truncate(message.content, 500)}',
+    );
+    if (saveUser) {
+      await _memoryManager.saveMessage(
+        convoId,
+        userMessage,
+        metaData: metaData,
+      );
+    }
+    if (persistTerminal) {
+      await _memoryManager.saveMessage(convoId, message, metaData: metaData);
+    }
+    yield AgentStreamChunk.done(AgentResult.message(message));
+  }
+
   /// Single turn implementation backing [generate], [generateStream] and
   /// [resumeWithApproval]. Streams [AgentTextChunk] deltas in LLM order and
   /// always terminates with exactly one [AgentDoneChunk] unless [failureMode]
@@ -404,6 +455,8 @@ class Agent {
         _memoryManager.saveMessage(convoId, userMessage, metaData: metaData);
     Future<void> saveAgentMessage(AgentMessage message) =>
         _memoryManager.saveMessage(convoId, message, metaData: metaData);
+    // Declared outside `try` so the catch blocks can report turn latency.
+    final turnClock = Stopwatch()..start();
 
     try {
       if (cancelToken?.isCancelled ?? false) {
@@ -448,6 +501,7 @@ class Agent {
         metaData: metaData,
         cancelToken: cancelToken,
       );
+      _debug('turn start convo=$convoId prompt=${_truncate(prompt, 2000)}');
 
       for (var step = initialStep; step < kMaxToolIterations; step++) {
         if (cancelToken?.isCancelled ?? false) {
@@ -496,9 +550,15 @@ class Agent {
                   ? {'observations': observations}
                   : null,
             );
-            if (saveUser) await saveUserMessage();
-            if (persistTerminal) await saveAgentMessage(message);
-            yield AgentStreamChunk.done(AgentResult.message(message));
+            yield* _finish(
+              message: message,
+              convoId: convoId,
+              userMessage: userMessage,
+              metaData: metaData,
+              saveUser: saveUser,
+              persistTerminal: persistTerminal,
+              turnClock: turnClock,
+            );
             return;
 
           case ParseOutcome.agentsChain:
@@ -521,12 +581,20 @@ class Agent {
             }
             if (saveUser) await saveUserMessage();
             if (chainTerminal is AgentPendingResult) {
+              _debug('terminal pending ${chainTerminal.pending.toolName}');
               yield AgentStreamChunk.done(chainTerminal);
               return;
             }
             final chained = (chainTerminal as AgentMessageResult).message;
-            if (persistTerminal) await saveAgentMessage(chained);
-            yield AgentStreamChunk.done(AgentResult.message(chained));
+            yield* _finish(
+              message: chained,
+              convoId: convoId,
+              userMessage: userMessage,
+              metaData: metaData,
+              saveUser: false,
+              persistTerminal: persistTerminal,
+              turnClock: turnClock,
+            );
             return;
 
           case ParseOutcome.tools:
@@ -579,9 +647,15 @@ class Agent {
                     ? {'observations': observations}
                     : null,
               );
-              if (saveUser) await saveUserMessage();
-              if (persistTerminal) await saveAgentMessage(exhausted);
-              yield AgentStreamChunk.done(AgentResult.message(exhausted));
+              yield* _finish(
+                message: exhausted,
+                convoId: convoId,
+                userMessage: userMessage,
+                metaData: metaData,
+                saveUser: saveUser,
+                persistTerminal: persistTerminal,
+                turnClock: turnClock,
+              );
               return;
             }
 
@@ -599,6 +673,10 @@ class Agent {
               agentNames: parsed.agentNames,
               rawOutput: parsed.rawOutput,
             );
+            _debug(
+              'calling ${remaining.join(',')} '
+              'params=${_truncate(json.encode(filteredParsed.params), 500)}',
+            );
 
             final toolResponses = await _toolRunner.runTools(
               filteredParsed,
@@ -607,6 +685,10 @@ class Agent {
             );
 
             for (final r in toolResponses) {
+              _debug(
+                'observation ${r.toolName} success=${r.isRequestSuccessful} '
+                'message=${_truncate(r.message, 300)}',
+              );
               observations.add({
                 'tool': r.toolName,
                 'success': r.isRequestSuccessful,
@@ -624,9 +706,15 @@ class Agent {
                 userMessage.content,
                 toolResponses,
               );
-              if (saveUser) await saveUserMessage();
-              if (persistTerminal) await saveAgentMessage(reasoned);
-              yield AgentStreamChunk.done(AgentResult.message(reasoned));
+              yield* _finish(
+                message: reasoned,
+                convoId: convoId,
+                userMessage: userMessage,
+                metaData: metaData,
+                saveUser: saveUser,
+                persistTerminal: persistTerminal,
+                turnClock: turnClock,
+              );
               return;
             }
 
@@ -662,12 +750,19 @@ class Agent {
               isFromAgent: true,
               generatedAt: DateTime.now(),
             );
-      if (saveUser) await saveUserMessage();
-      if (persistTerminal) await saveAgentMessage(fallback);
-      yield AgentStreamChunk.done(AgentResult.message(fallback));
+      yield* _finish(
+        message: fallback,
+        convoId: convoId,
+        userMessage: userMessage,
+        metaData: metaData,
+        saveUser: saveUser,
+        persistTerminal: persistTerminal,
+        turnClock: turnClock,
+      );
       return;
     } on CancelledException {
       if (propagateCancel) rethrow;
+      _debug('terminal cancelled after ${turnClock.elapsedMilliseconds}ms');
       final cancelled = _cancelledMessage();
       if (saveUser) await saveUserMessage();
       if (persistTerminal) await saveAgentMessage(cancelled);
@@ -676,6 +771,7 @@ class Agent {
     } on YaseenAiAgentException catch (e, st) {
       onError?.call(e, st);
       if (failureMode == FailureMode.throwError) rethrow;
+      _debug('terminal graceful ($e) after ${turnClock.elapsedMilliseconds}ms');
       final graceful = _gracefulMessage();
       if (saveUser) await saveUserMessage();
       if (persistTerminal) await saveAgentMessage(graceful);
@@ -689,6 +785,9 @@ class Agent {
       );
       onError?.call(wrapped, st);
       if (failureMode == FailureMode.throwError) throw wrapped;
+      _debug(
+        'terminal graceful ($wrapped) after ${turnClock.elapsedMilliseconds}ms',
+      );
       final graceful = _gracefulMessage();
       if (saveUser) await saveUserMessage();
       if (persistTerminal) await saveAgentMessage(graceful);
@@ -755,6 +854,10 @@ class Agent {
         metaData: metaData,
       );
     }
+    _debug(
+      'paused for approval ${approval.toolName} '
+      'params=${_truncate(json.encode(approval.params), 500)}',
+    );
     yield AgentStreamChunk.done(AgentResult.pendingApproval(approval));
   }
 
