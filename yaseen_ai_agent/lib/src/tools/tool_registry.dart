@@ -1,0 +1,46 @@
+import 'package:yaseen_ai_agent/src/static/yaseen_ai_agent_exceptions.dart';
+
+import 'tool.dart';
+
+/// Tool Registry for managing tools available to a single agent.
+/// Each agent owns its own [ToolRegistry] instance.
+/// It provides methods to register a tool, unregister a tool, get a tool by name, and check if a tool exists.
+class ToolRegistry {
+  final Map<String, Tool> _tools = {};
+
+  /// This method should be called whenever developers make a new tool.
+  /// It registers the tool in the registry.
+  /// If you miss this step, the tool won't be available for use.
+  void registerTool(Tool tool) {
+    if (hasTool(tool.name)) {
+      throw ConfigException(
+        'Tool with name ${tool.name} already exists. Do not register the same tool twice. Use a different name.',
+      );
+    }
+    _tools[tool.name] = tool;
+  }
+
+  /// This method should be called whenever developers want to remove a tool.
+  /// It unregisters the tool from the registry.
+  void unregisterTool(String toolName) {
+    _tools.remove(toolName);
+  }
+
+  /// This method gets a tool by its name.
+  /// It is used by the agent to find the tool it needs.
+  /// If the tool is not found, it returns null.
+  Tool? getTool(String toolName) {
+    return _tools[toolName];
+  }
+
+  /// This method gets all the tools in the registry.
+  /// It is used by prompt builders to list all available tools.
+  List<Tool> getAllTools() {
+    return _tools.values.toList();
+  }
+
+  /// This method checks if a tool is registered in the registry.
+  bool hasTool(String toolName) {
+    return _tools.containsKey(toolName);
+  }
+}
