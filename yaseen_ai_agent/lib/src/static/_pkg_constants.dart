@@ -15,6 +15,11 @@ const String kParseRetryInstruction =
 /// Maximum depth for agent chain delegation (prevents unbounded recursion).
 const int kMaxChainDepth = 5;
 
+/// Delay before the single retry on transient provider `503`s (observed live
+/// on Gemini 2026-10-05). Exactly one replay per call; mid-stream replays are
+/// skipped once any chunk was yielded.
+const Duration kProviderServerRetryDelay = Duration(seconds: 2);
+
 /// Soft budget for one rendered text prompt (characters).
 ///
 /// When exceeded, the builder truncates the rolling summary first, then drops

@@ -30,13 +30,13 @@ void main() {
       });
       final llm = LLM.geminiLLM(
         apiKey: 'secret',
-        modelName: 'gemini-2.0-flash',
+        modelName: 'gemini-3.8-flash',
         client: dio,
       );
       expect(llm.supportsNativeTools, isTrue);
       expect(await llm.generate(prompt: 'hi'), '{"response": "salam"}');
       expect(seen!.queryParameters['key'], 'secret');
-      expect(seen!.path, contains('gemini-2.0-flash:generateContent'));
+      expect(seen!.path, contains('gemini-3.8-flash:generateContent'));
       final body = seen!.data as Map;
       expect((body['contents'] as List).single['role'], 'user');
       expect(body['generationConfig'], isA<Map>());
@@ -67,6 +67,51 @@ void main() {
               as Map<String, dynamic>;
       expect(decoded['tools'], ['spy_tool']);
       expect((decoded['parameters'] as Map)['spy_tool'], {'query': 'x'});
+    });
+
+    test('retries once on transient 503, then succeeds', () async {
+      var calls = 0;
+      final dio = fakeDio((options) async {
+        calls++;
+        if (calls == 1) {
+          throw DioException(
+            requestOptions: options,
+            type: DioExceptionType.badResponse,
+            response: Response(requestOptions: options, statusCode: 503),
+          );
+        }
+        return _ok(options, {
+          'candidates': [
+            {
+              'content': {
+                'parts': [
+                  {'text': '{"response": "retried"}'},
+                ],
+              },
+            },
+          ],
+        });
+      });
+      final llm = LLM.geminiLLM(apiKey: 'k', modelName: 'm', client: dio);
+      expect(await llm.generate(prompt: 'hi'), '{"response": "retried"}');
+      expect(calls, 2);
+    });
+
+    test('repeated 503 surfaces as LlmException', () async {
+      final dio = failingDio(
+        (options) => DioException(
+          requestOptions: options,
+          type: DioExceptionType.badResponse,
+          response: Response(requestOptions: options, statusCode: 503),
+        ),
+      );
+      final llm = LLM.geminiLLM(apiKey: 'k', modelName: 'm', client: dio);
+      expect(
+        () => llm.generate(prompt: 'hi'),
+        throwsA(
+          isA<LlmException>().having((e) => e.statusCode, 'statusCode', 503),
+        ),
+      );
     });
 
     test('blocked prompt throws LlmException', () async {

@@ -136,7 +136,7 @@ final agent = await Agent.create(
   dataStore: DataStore.inMemory(),
   llm: LLM.geminiLLM(
     apiKey: 'YOUR_API_KEY',
-    modelName: 'gemini-2.0-flash',
+    modelName: 'gemini-3.8-flash',
   ),
   name: 'Assistant',
   role: 'General purpose assistant for the platform.',
@@ -175,7 +175,7 @@ The `Agent` is the central class. It wires together an LLM, a DataStore, a ToolR
 ```dart
 final agent = await Agent.create(
   dataStore: DataStore.inMemory(),
-  llm: LLM.geminiLLM(apiKey: key, modelName: 'gemini-2.0-flash'),
+  llm: LLM.geminiLLM(apiKey: key, modelName: 'gemini-3.8-flash'),
   name: 'Support Agent',
   role: 'Handles customer support queries for the e-commerce platform.',
   failureMode: FailureMode.throwError,  // or FailureMode.gracefulMessage (default)
@@ -212,7 +212,7 @@ The `LLM` abstract class defines the contract for language model providers. Yase
 
 | Factory | Provider | Example model |
 |---|---|---|
-| `LLM.geminiLLM()` | Google Gemini | `gemini-2.0-flash` |
+| `LLM.geminiLLM()` | Google Gemini | `gemini-3.8-flash` |
 | `LLM.openAiLLM()` | OpenAI | `gpt-4o` |
 | `LLM.anthropicLLM()` | Anthropic (Claude) | `claude-sonnet-4-5` |
 | `LLM.groqLLM()` | Groq | `llama-3.3-70b-versatile` |
@@ -225,7 +225,7 @@ The `LLM` abstract class defines the contract for language model providers. Yase
 // Google Gemini
 final llm = LLM.geminiLLM(
   apiKey: 'YOUR_API_KEY',
-  modelName: 'gemini-2.0-flash',
+  modelName: 'gemini-3.8-flash',
   config: LlmConfig(
     temperature: 0.2,
     maxOutputTokens: 2048,
@@ -693,7 +693,7 @@ final scope = AgentScope();
 
 final agent = await Agent.create(
   dataStore: DataStore.inMemory(),  // No Firebase needed
-  llm: LLM.geminiLLM(apiKey: key, modelName: 'gemini-2.0-flash'),
+  llm: LLM.geminiLLM(apiKey: key, modelName: 'gemini-3.8-flash'),
   name: 'Test Agent',
   role: 'Agent under test.',
   scope: scope,  // Isolated from production agents

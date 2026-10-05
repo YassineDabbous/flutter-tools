@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:yaseen_ai_agent/src/llm/_sse.dart';
 import 'package:yaseen_ai_agent/src/llm/_tool_schemas.dart';
+import 'package:yaseen_ai_agent/src/static/_pkg_constants.dart';
 import 'package:yaseen_ai_agent/src/llm/llm.dart';
 import 'package:yaseen_ai_agent/src/llm/llm_config.dart';
 import 'package:yaseen_ai_agent/src/static/yaseen_ai_agent_exceptions.dart';
@@ -122,6 +123,28 @@ class Gemini extends LLM {
     if (stream) 'alt': 'sse',
   };
 
+  /// Single retry on transient `503` (observed live 2026-10-05): waits
+  /// [kProviderServerRetryDelay], then replays the identical request once.
+  Future<Response<dynamic>> _postGenerate(Map<String, dynamic> body) async {
+    try {
+      return await _client
+          .post(_path('generateContent'), queryParameters: _query(), data: body)
+          .timeout(_config.timeout);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 503) {
+        await Future.delayed(kProviderServerRetryDelay);
+        return await _client
+            .post(
+              _path('generateContent'),
+              queryParameters: _query(),
+              data: body,
+            )
+            .timeout(_config.timeout);
+      }
+      rethrow;
+    }
+  }
+
   @override
   Future<String> generate({
     required String prompt,
@@ -131,19 +154,9 @@ class Gemini extends LLM {
     List<Tool>? tools,
   }) async {
     try {
-      final response = await _client
-          .post(
-            _path('generateContent'),
-            queryParameters: _query(),
-            data: _requestBody(
-              prompt,
-              systemInstruction,
-              rawData,
-              mimeType,
-              tools,
-            ),
-          )
-          .timeout(_config.timeout);
+      final response = await _postGenerate(
+        _requestBody(prompt, systemInstruction, rawData, mimeType, tools),
+      );
       return _extractText(response.data);
     } on TimeoutException catch (e, st) {
       throw LlmTimeoutException(
@@ -168,39 +181,55 @@ class Gemini extends LLM {
     String mimeType = 'image/jpeg',
     List<Tool>? tools,
   }) async* {
+    final body = _requestBody(
+      prompt,
+      systemInstruction,
+      rawData,
+      mimeType,
+      tools,
+    );
+    var attempts = 0;
+    var yieldedAny = false;
     try {
-      final response = await _client
-          .post<ResponseBody>(
-            _path('streamGenerateContent'),
-            queryParameters: _query(stream: true),
-            data: _requestBody(
-              prompt,
-              systemInstruction,
-              rawData,
-              mimeType,
-              tools,
-            ),
-            options: Options(responseType: ResponseType.stream),
-          )
-          .timeout(_config.timeout);
-      var yieldedAny = false;
-      await for (final chunk in sseJsonObjects(response.data!.stream)) {
-        final text = _chunkText(chunk);
-        if (text != null && text.isNotEmpty) {
-          yieldedAny = true;
-          yield text;
+      while (true) {
+        attempts++;
+        try {
+          final response = await _client
+              .post<ResponseBody>(
+                _path('streamGenerateContent'),
+                queryParameters: _query(stream: true),
+                data: body,
+                options: Options(responseType: ResponseType.stream),
+              )
+              .timeout(_config.timeout);
+          await for (final chunk in sseJsonObjects(response.data!.stream)) {
+            final text = _chunkText(chunk);
+            if (text != null && text.isNotEmpty) {
+              yieldedAny = true;
+              yield text;
+            }
+            final call = _chunkFunctionCall(chunk);
+            if (call != null) {
+              yieldedAny = true;
+              yield json.encode({
+                'tools': [call.$1],
+                'parameters': {call.$1: call.$2},
+              });
+            }
+          }
+          if (!yieldedAny) {
+            throw const LlmException('Gemini stream returned no content');
+          }
+          return;
+        } on DioException catch (e, st) {
+          // Retry once on transient 503, but only before any chunk: replaying
+          // mid-stream would duplicate deltas downstream.
+          if (e.response?.statusCode == 503 && !yieldedAny && attempts < 2) {
+            await Future.delayed(kProviderServerRetryDelay);
+            continue;
+          }
+          throw _mapDio(e, st);
         }
-        final call = _chunkFunctionCall(chunk);
-        if (call != null) {
-          yieldedAny = true;
-          yield json.encode({
-            'tools': [call.$1],
-            'parameters': {call.$1: call.$2},
-          });
-        }
-      }
-      if (!yieldedAny) {
-        throw const LlmException('Gemini stream returned no content');
       }
     } on TimeoutException catch (e, st) {
       throw LlmTimeoutException(

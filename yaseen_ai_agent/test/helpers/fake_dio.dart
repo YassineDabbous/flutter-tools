@@ -15,6 +15,8 @@ Dio fakeDio(FutureOr<Response<dynamic>> Function(RequestOptions) responder) {
       onRequest: (options, handler) async {
         try {
           handler.resolve(await responder(options));
+        } on DioException catch (e) {
+          handler.reject(e);
         } catch (e) {
           handler.reject(DioException(requestOptions: options, error: e));
         }
