@@ -600,6 +600,27 @@ class Agent {
           case ParseOutcome.tools:
             final gated = _firstGatedTool(parsed.toolNames);
             if (gated != null) {
+              final gatedTool = toolRegistry.getTool(gated)!;
+              final gatedValidation = validateParams(
+                gatedTool.parameters,
+                parsed.params[gated] ?? const <String, dynamic>{},
+              );
+              if (!gatedValidation.isValid) {
+                // Correctable: steer a retry instead of pausing on garbage.
+                observations.add({
+                  'tool': gated,
+                  'success': false,
+                  'message':
+                      'Parameter error: ${gatedValidation.errors.join("; ")}. '
+                      'Expected: ${_requiredParamsHint(gatedTool)}. Correct '
+                      'the parameters and retry, or ask the user.',
+                });
+                currentPrompt = _buildObservationPrompt(
+                  originalPrompt: prompt,
+                  observations: observations,
+                );
+                continue;
+              }
               yield* _pauseForApproval(
                 toolName: gated,
                 parsed: parsed,
@@ -659,15 +680,58 @@ class Agent {
               return;
             }
 
+            // Validate BEFORE running: correctable parameter errors become
+            // failed observations that steer a retry (next step) instead of
+            // killing the turn. Unknown tools pass through for the runner
+            // to reject loudly — a retry cannot invent a real tool.
+            final validNames = <String>[];
+            final validKeys = <String>[];
+            for (var i = 0; i < remaining.length; i++) {
+              final toolName = remaining[i];
+              final tool = toolRegistry.getTool(toolName);
+              if (tool == null) {
+                validNames.add(toolName);
+                validKeys.add(remainingKeys[i]);
+                continue;
+              }
+              final validation = validateParams(
+                tool.parameters,
+                parsed.params[toolName] ?? const <String, dynamic>{},
+              );
+              if (validation.isValid) {
+                validNames.add(toolName);
+                validKeys.add(remainingKeys[i]);
+              } else {
+                observations.add({
+                  'tool': toolName,
+                  'success': false,
+                  'message':
+                      'Parameter error: ${validation.errors.join("; ")}. '
+                      'Expected: ${_requiredParamsHint(tool)}. Correct the '
+                      'parameters and retry, or ask the user.',
+                });
+              }
+            }
+
+            if (validNames.isEmpty) {
+              // Nothing runnable this step — the errors above steer retry.
+              // Bounded by the loop cap, so a stubborn model cannot spin.
+              currentPrompt = _buildObservationPrompt(
+                originalPrompt: prompt,
+                observations: observations,
+              );
+              continue;
+            }
+
             // Mark as attempted BEFORE running so an exception mid-flight still
             // blocks a naive retry of the same call.
-            attemptedCalls.addAll(remainingKeys);
+            attemptedCalls.addAll(validKeys);
 
             final filteredParsed = PromptParserResult(
               outcome: ParseOutcome.tools,
-              toolNames: remaining,
+              toolNames: validNames,
               params: {
-                for (final t in remaining)
+                for (final t in validNames)
                   t: parsed.params[t] ?? const <String, dynamic>{},
               },
               agentNames: parsed.agentNames,
@@ -794,6 +858,21 @@ class Agent {
       yield AgentStreamChunk.done(AgentResult.message(graceful));
       return;
     }
+  }
+
+  /// One-line parameter contract for correction prompts:
+  /// `routeKey (required, one of: a, b); arg (optional)`.
+  static String _requiredParamsHint(Tool tool) {
+    final parts = <String>[];
+    for (final p in tool.parameters) {
+      final req = p.required ? 'required' : 'optional';
+      final enums =
+          p.enumValues != null && p.enumValues!.isNotEmpty
+              ? ', one of: ${p.enumValues!.join(', ')}'
+              : '';
+      parts.add('${p.name} ($req$enums)');
+    }
+    return parts.join('; ');
   }
 
   /// Returns the first requested tool gated by [ToolApproval.requireApproval],

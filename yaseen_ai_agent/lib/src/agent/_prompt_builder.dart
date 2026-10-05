@@ -122,7 +122,7 @@ fences:
 
 {"response": "<your answer>"}''');
     } else {
-      tail.writeln(
+      buffer.writeln(
         '''
 Output format — reply with ONLY a single JSON object, no prose, no markdown fences.
 
@@ -130,7 +130,14 @@ If you can answer directly:
 {"response": "<your answer>"}
 
 If tools should be used:
-{"tools": "<tool_name1>, <tool_name2>", "parameters": {"<tool_name1>": {"<param>": "<value>"}}}''',
+{"tools": "<tool_name1>, <tool_name2>", "parameters": {"<tool_name1>": {"<param>": "<value>"}}}
+
+Worked example — user says "navigate to orders" and a tool named "navigate"
+takes a required "routeKey":
+{"tools": ["navigate"], "parameters": {"navigate": {"routeKey": "orders"}}}
+
+Copy the shape exactly: "tools" is a list of names, "parameters" maps each
+name to its own params object, every required parameter present.''',
       );
     }
 
