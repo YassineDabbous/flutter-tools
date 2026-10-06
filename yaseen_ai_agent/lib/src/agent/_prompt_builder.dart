@@ -15,12 +15,21 @@ class _PromptBuilder {
   /// assistant releases).
   final String? toolsVersion;
 
+  /// Live per-turn context (location, feature flags, session state).
+  ///
+  /// Called on every turn and merged into [systemInstruction] under the
+  /// `session_context` key, so the model always sees current app state
+  /// without agent rebuilds. Throwing providers are ignored (context must
+  /// never break a turn).
+  final Map<String, dynamic> Function()? contextProvider;
+
   _PromptBuilder({
     required this.systemPrompt,
     required this.registry,
     required this.scope,
     this.locale,
     this.toolsVersion,
+    this.contextProvider,
   });
 
   /// The system instruction block, passed separately via LLM's systemInstruction param.
@@ -29,7 +38,19 @@ class _PromptBuilder {
     if (locale != null && locale!.isNotEmpty) 'locale': locale,
     if (toolsVersion != null && toolsVersion!.isNotEmpty)
       'toolsVersion': toolsVersion,
+    if (_readContext() case final context?) 'session_context': context,
   });
+
+  /// Reads live context defensively: null or throwing means "no context".
+  Map<String, dynamic>? _readContext() {
+    final provider = contextProvider;
+    if (provider == null) return null;
+    try {
+      return provider();
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// JSON-text fallback contract (weak models, native-tools off).
   static const _kFormatFallback = '''

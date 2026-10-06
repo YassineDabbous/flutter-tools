@@ -110,6 +110,11 @@ class Agent {
     /// Set to 0 (the default) to disable summarization — evicted messages are
     /// simply dropped when they fall outside [memoryLimit].
     int summarizationBatchSize = 0,
+
+    /// Live per-turn context merged into the system instruction (see
+    /// [_PromptBuilder.contextProvider]). Lets apps inject changing session
+    /// state (location, feature flags) without rebuilding the agent.
+    Map<String, dynamic> Function()? systemContextProvider,
   }) async {
     final resolvedScope = scope ?? AgentScope.global;
     final resolvedSystemData =
@@ -128,6 +133,7 @@ class Agent {
         scope: resolvedScope,
         locale: locale,
         toolsVersion: toolsVersion,
+        contextProvider: systemContextProvider,
       ),
       toolRegistry: registry,
       name: name,
