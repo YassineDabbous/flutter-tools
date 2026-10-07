@@ -180,6 +180,43 @@ class Agent {
   /// routes across the scope, so callers only ever talk to the root agent.
   final Map<String, _PendingState> _pendings = {};
 
+  /// Cap for the wire-level audit log below.
+  static const int maxExchanges = 100;
+
+  /// Every LLM round trip of this agent's lifetime, oldest first. Powers
+  /// session audits (exact wire payloads, not reconstructions).
+  final List<LlmExchange> _exchanges = [];
+
+  /// Recorded LLM round trips, oldest first (unmodifiable view).
+  List<LlmExchange> get exchanges => List.unmodifiable(_exchanges);
+
+  /// The live system instruction (system data + locale + version + session
+  /// context) currently sent to the provider.
+  String get systemInstruction => _promptBuilder.systemInstruction;
+
+  /// Appends one exchange, dropping the oldest beyond [maxExchanges].
+  void _recordExchange({
+    List<Map<String, dynamic>>? messages,
+    String? prompt,
+    String? systemInstruction,
+    required String response,
+  }) {
+    _exchanges.add(
+      LlmExchange(
+        at: DateTime.now(),
+        messages: messages == null
+            ? null
+            : [for (final m in messages) Map<String, dynamic>.of(m)],
+        prompt: prompt,
+        systemInstruction: systemInstruction,
+        response: response,
+      ),
+    );
+    while (_exchanges.length > maxExchanges) {
+      _exchanges.removeAt(0);
+    }
+  }
+
   /// Generate a response to the user message. This is the public facing method.
   ///
   /// Returns [AgentResult.message] on completion or [AgentResult.pendingApproval]
@@ -563,17 +600,22 @@ class Agent {
             throw const CancelledException();
           }
           final buffer = StringBuffer();
+          // Built once per attempt: this exact payload goes over the wire
+          // (and into the audit log below).
+          final wire = structured
+              ? _promptBuilder.buildWireMessages(
+                  memoryMessages: messages,
+                  contextSummary: summary,
+                  systemInstruction: _promptBuilder.systemInstruction,
+                  tail: attemptTail,
+                  isPartOfChain: isPartOfChain,
+                  includeTools: nativeTools == null,
+                )
+              : null;
           await for (final delta
               in structured
                   ? llm.generateStreamWithMessages(
-                      messages: _promptBuilder.buildWireMessages(
-                        memoryMessages: messages,
-                        contextSummary: summary,
-                        systemInstruction: _promptBuilder.systemInstruction,
-                        tail: attemptTail,
-                        isPartOfChain: isPartOfChain,
-                        includeTools: nativeTools == null,
-                      ),
+                      messages: wire!,
                       rawData: (attempt == 0 && isFirstCall)
                           ? userMessage.imageData
                           : null,
@@ -590,6 +632,14 @@ class Agent {
             buffer.write(delta);
             yield AgentStreamChunk.text(delta);
           }
+          _recordExchange(
+            messages: wire,
+            prompt: structured ? null : attemptPrompt,
+            systemInstruction: structured
+                ? null
+                : _promptBuilder.systemInstruction,
+            response: buffer.toString(),
+          );
           parsed = _promptParser.parse(buffer.toString());
           if (parsed.outcome != ParseOutcome.unparseable) break;
           attemptPrompt = '$currentPrompt\n\n$kParseRetryInstruction';
@@ -1180,13 +1230,19 @@ class Agent {
         )
         .toList();
 
+    final reasonPrompt =
+        'Keep the answer to the point but natural, only answer what is asked '
+        'in the original prompt using this data.\n\n'
+        'Tool results: ${json.encode(toolData)}\n\n'
+        'Original prompt: $originalPrompt';
     final raw = await llm.generate(
-      prompt:
-          'Keep the answer to the point but natural, only answer what is asked '
-          'in the original prompt using this data.\n\n'
-          'Tool results: ${json.encode(toolData)}\n\n'
-          'Original prompt: $originalPrompt',
+      prompt: reasonPrompt,
       systemInstruction: _promptBuilder.systemInstruction,
+    );
+    _recordExchange(
+      prompt: reasonPrompt,
+      systemInstruction: _promptBuilder.systemInstruction,
+      response: raw,
     );
 
     final content = _extractResponseText(raw);

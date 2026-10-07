@@ -94,3 +94,41 @@ class PendingApproval {
     required this.convoId,
   });
 }
+
+/// One recorded LLM round trip: exactly what went over the wire and what
+/// came back. Powers session audits — see `Agent.exchanges`.
+class LlmExchange {
+  /// When the call was issued.
+  final DateTime at;
+
+  /// Structured `role`/`content` payload (structured providers), if any.
+  final List<Map<String, dynamic>>? messages;
+
+  /// Flattened prompt (text providers), if any.
+  final String? prompt;
+
+  /// System instruction sent alongside a text prompt, if any. Structured
+  /// providers carry it inside [messages] instead.
+  final String? systemInstruction;
+
+  /// Full buffered response text (deltas concatenated).
+  final String response;
+
+  /// Creates an [LlmExchange].
+  const LlmExchange({
+    required this.at,
+    this.messages,
+    this.prompt,
+    this.systemInstruction,
+    required this.response,
+  });
+
+  /// Audit-shaped map.
+  Map<String, dynamic> toJson() => {
+    'at': at.toIso8601String(),
+    if (messages != null) 'messages': messages,
+    if (prompt != null) 'prompt': prompt,
+    if (systemInstruction != null) 'system_instruction': systemInstruction,
+    'response': response,
+  };
+}
