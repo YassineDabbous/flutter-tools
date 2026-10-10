@@ -17,6 +17,17 @@ enum ToolApproval {
   requireApproval,
 }
 
+/// Side-effect class of a tool, mirrored in the system prompt so the model
+/// and the host app enforce the same policy from one source.
+enum ToolCategory {
+  /// Read-only: safe to call whenever needed to answer the user.
+  read,
+
+  /// Observable side effect: only when the user clearly requested the
+  /// action, prerequisites are satisfied, and confirmation was obtained.
+  write,
+}
+
 /// The Tool class is an abstract class that defines the structure and behavior of a tool.
 /// It includes the name, description, and parameters of the tool.
 abstract class Tool {
@@ -31,8 +42,25 @@ abstract class Tool {
 
   /// Whether the LLM may invoke this tool freely ([ToolApproval.auto]) or
   /// must pause for human approval first (`requireApproval`, resumed via
-  /// `Agent.resumeWithApproval`).
+  /// [Agent.resumeWithApproval]).
   final ToolApproval approval;
+
+  /// Side-effect class: [ToolCategory.read] tools answer questions,
+  /// [ToolCategory.write] tools change state. Defaults to read.
+  final ToolCategory category;
+
+  /// Domain group key (e.g. `orders`, `wallet`) used for the prompt routing
+  /// table and per-turn advertised subsets. Defaults to `general`.
+  final String group;
+
+  /// Prerequisite tool names that must succeed in this flow before this tool
+  /// runs (e.g. `checkout_place` requires `checkout_preview`). Advisory to
+  /// the model; hosts may additionally enforce it.
+  final List<String> requires;
+
+  /// Intent phrases for the prompt routing table (e.g. `wallet balance`,
+  /// `where is my order`). Short noun phrases, lowercase.
+  final List<String> intents;
 
   /// Constructs a Tool with the required fields.
   Tool({
@@ -40,6 +68,10 @@ abstract class Tool {
     required this.description,
     this.parameters = const [],
     this.approval = ToolApproval.auto,
+    this.category = ToolCategory.read,
+    this.group = 'general',
+    this.requires = const [],
+    this.intents = const [],
   });
 
   /// Executes the tool with the given validated parameters.

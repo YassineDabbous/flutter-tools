@@ -42,6 +42,11 @@ class Agent {
   /// Always additionally gated by `kDebugMode`: release builds stay silent.
   final bool debugLog;
 
+  /// Whether this agent may delegate via `agents_chain`. Single-agent apps
+  /// pass false; the chain hint is omitted from the prompt and a chain
+  /// request becomes a retryable protocol violation instead of a handoff.
+  final bool enableAgentChain;
+
   final AgentScope _scope;
 
   Agent._internal({
@@ -55,9 +60,10 @@ class Agent {
     required AgentScope scope,
     this.onError,
     this.debugLog = false,
+    this.enableAgentChain = true,
   }) : _memoryManager = memoryManager,
-       _promptBuilder = promptBuilder,
-       _scope = scope;
+        _promptBuilder = promptBuilder,
+        _scope = scope;
 
   /// Debug line, emitted only when [debugLog] is on AND in debug builds.
   /// Prompts may carry user data — never enable outside development.
@@ -115,6 +121,10 @@ class Agent {
     /// [_PromptBuilder.contextProvider]). Lets apps inject changing session
     /// state (location, feature flags) without rebuilding the agent.
     Map<String, dynamic> Function()? systemContextProvider,
+
+    /// Whether the model may delegate via `agents_chain`. Single-agent apps
+    /// pass false (see [enableAgentChain]). Defaults to true.
+    bool enableAgentChain = true,
   }) async {
     final resolvedScope = scope ?? AgentScope.global;
     final resolvedSystemData =
@@ -134,6 +144,7 @@ class Agent {
         locale: locale,
         toolsVersion: toolsVersion,
         contextProvider: systemContextProvider,
+        enableAgentChain: enableAgentChain,
       ),
       toolRegistry: registry,
       name: name,
@@ -141,6 +152,7 @@ class Agent {
       failureMode: failureMode,
       onError: onError,
       debugLog: debugLog,
+      enableAgentChain: enableAgentChain,
       scope: resolvedScope,
     );
 
@@ -671,6 +683,25 @@ class Agent {
             return;
 
           case ParseOutcome.agentsChain:
+            if (!enableAgentChain) {
+              // Single-agent app: chaining is a protocol violation, not a
+              // handoff. Steer a retry like any correctable error; the loop
+              // cap bounds a stubborn model.
+              observations.add({
+                'tool': 'agents_chain',
+                'success': false,
+                'message':
+                    'agents_chain is not supported: reply with {"response": ...} '
+                    'or call the listed tools. Never output agents_chain.',
+              });
+              currentPrompt = _buildObservationPrompt(
+                originalPrompt: prompt,
+                observations: observations,
+              );
+              currentTail = '$baseTail${_observationBlock(observations)}'
+                  .trim();
+              continue;
+            }
             AgentResult? chainTerminal;
             await for (final chunk in _handleAgentChainStream(
               parsed: parsed,

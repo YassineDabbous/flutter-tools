@@ -23,6 +23,12 @@ class _PromptBuilder {
   /// never break a turn).
   final Map<String, dynamic> Function()? contextProvider;
 
+  /// Whether the model may delegate via `agents_chain`. Single-agent apps
+  /// set this to false: the chain hint is omitted and the turn loop treats
+  /// a chain request as a retryable protocol violation instead of chaining.
+  /// Defaults to true to preserve multi-agent behavior.
+  final bool enableAgentChain;
+
   _PromptBuilder({
     required this.systemPrompt,
     required this.registry,
@@ -30,6 +36,7 @@ class _PromptBuilder {
     this.locale,
     this.toolsVersion,
     this.contextProvider,
+    this.enableAgentChain = true,
   });
 
   /// The system instruction block, passed separately via LLM's systemInstruction param.
@@ -53,6 +60,9 @@ class _PromptBuilder {
   }
 
   /// JSON-text fallback contract (weak models, native-tools off).
+  /// `tools` is ALWAYS a JSON array of names — never a comma-separated
+  /// string. (The parser still tolerates the legacy string form, but the
+  /// model must always emit the array form.)
   static const _kFormatFallback = '''
 Output format — reply with ONLY a single JSON object, no prose, no markdown fences.
 
@@ -60,14 +70,15 @@ If you can answer directly:
 {"response": "<your answer>"}
 
 If tools should be used:
-{"tools": "<tool_name1>, <tool_name2>", "parameters": {"<tool_name1>": {"<param>": "<value>"}}}
+{"tools": ["<tool_name1>", "<tool_name2>"], "parameters": {"<tool_name1>": {"<param>": "<value>"}}}
 
 Worked example — user says "navigate to orders" and a tool named "navigate"
 takes a required "routeKey":
 {"tools": ["navigate"], "parameters": {"navigate": {"routeKey": "orders"}}}
 
-Copy the shape exactly: "tools" is a list of names, "parameters" maps each
-name to its own params object, every required parameter present.''';
+Copy the shape exactly: "tools" is an array of names, "parameters" maps each
+name to its own params object, every required parameter present.
+Never combine "response" with "tools".''';
 
   /// Lean contract for native function-calling providers.
   static const _kFormatNative = '''
@@ -84,9 +95,23 @@ If the task requires multiple agents:
   static const _kRules = '''
 
 RULES:
-1. Check all available tools first. If a tool matches the prompt, output it in the JSON format above.
-2. For required tool parameters, deduce them from the prompt and any provided data. Only ask the user for a required parameter if it cannot be deduced at all — explain why you need it in the "response" field.
-3. Do NOT ask for optional parameters. Do NOT mention tool names to the user.''';
+1. Check the TOOL ROUTING index first. If exactly one tool matches the request, call it.
+2. Populate parameters ONLY from: (a) explicit user-provided values, (b) trusted session context, (c) results returned by previous tool calls. Never invent or guess UUIDs, IDs, coordinates, prices, balances, totals, or addresses. If a required value cannot be obtained from a read-only tool, ask the user for it in the "response" field and explain why.
+3. Do NOT ask for optional parameters. Do NOT mention tool names to the user.
+4. If clarification can be resolved by a read-only tool, use the read-only tool first and ask the user only when the data still cannot resolve the ambiguity.''';
+
+  /// Read-vs-write safety policy. Write tools change state or money; the
+  /// per-tool `requires` list names the prerequisites that must succeed
+  /// first, and approval-gated tools pause for the human regardless.
+  static const _kSafety = '''
+
+TOOL SAFETY — read tools may be called whenever required to answer the
+request. Write (side-effecting) tools may ONLY be called when ALL hold:
+(a) the user clearly requested the action, (b) every tool in its `requires`
+list already succeeded in this flow — never invent prerequisite results,
+(c) any required human confirmation was obtained. Never bypass a workflow
+step. Amounts echoed between calls are advisory display values; the host
+re-validates them at execution.''';
 
   /// Head section shared by the text and wire builders: locale, registry
   /// version, agents in scope, rolling summary, and — for the JSON-text
@@ -131,9 +156,9 @@ RULES:
     return buffer.toString();
   }
 
-  /// Middle section shared by the text and wire builders: tool specs,
-  /// native-contract format block, chain hint, and rules. Never truncated:
-  /// cutting specs corrupts tool calls before anything else.
+  /// Middle section shared by the text and wire builders: routing index,
+  /// tool specs, native-contract format block, chain hint, and rules. Never
+  /// truncated: cutting specs corrupts tool calls before anything else.
   String _middleString({
     required bool includeTools,
     required bool isPartOfChain,
@@ -142,7 +167,9 @@ RULES:
 
     // --- Available tools (as a JSON array, or native in lean mode) ---
     // Never truncated: cutting specs corrupts tool calls before anything else.
-    final tools = registry.getAllTools();
+    // Only the advertised subset renders: the registry stays fully
+    // executable, so narrowing focuses attention without removing ability.
+    final tools = registry.getAdvertisedTools();
     if (tools.isEmpty) {
       tail.writeln('Available Tools: none\n');
     } else if (!includeTools) {
@@ -152,11 +179,14 @@ RULES:
         'parameter names; never invent tool names)\n',
       );
     } else {
+      tail.writeln('${_routingTable(tools)}\n');
       final toolSpecs = tools
           .map(
             (tool) => {
               'name': tool.name,
               'description': tool.description,
+              'category': tool.category.name,
+              if (tool.requires.isNotEmpty) 'requires': tool.requires,
               'parameters': tool.parameters.map((e) => e.toJson()).toList(),
             },
           )
@@ -169,22 +199,46 @@ RULES:
       tail.writeln(_kFormatNative);
     }
 
-    if (!isPartOfChain) {
+    if (enableAgentChain && !isPartOfChain) {
       tail.writeln(_kChainHint);
     }
 
     // --- Rules ---
     tail.writeln(_kRules);
 
-    if (!isPartOfChain) {
+    // --- Safety ---
+    tail.writeln(_kSafety);
+
+    if (!isPartOfChain && enableAgentChain) {
       tail.writeln(
-        '4. If the task needs multiple agents, output them as an agents_chain in logical order.\n'
-        '5. If no tools or agents apply, generate the response yourself.',
+        'If the task needs multiple agents, output them as an agents_chain in logical order.\n'
+        'If no tools or agents apply, generate the response yourself.',
       );
     } else {
-      tail.writeln('4. If no tools apply, generate the response yourself.');
+      tail.writeln('If no tools apply, generate the response yourself.');
     }
     return tail.toString();
+  }
+
+  /// Compact intent index rendered before the full specs: lets the model
+  /// match the request to one line first instead of reasoning over every
+  /// schema. Grouped by domain in registry order.
+  String _routingTable(List<Tool> tools) {
+    final groups = <String, List<Tool>>{};
+    for (final tool in tools) {
+      groups.putIfAbsent(tool.group, () => []).add(tool);
+    }
+    final lines = <String>[
+      'TOOL ROUTING — match the request to one tool below, then read its full spec.',
+    ];
+    for (final entry in groups.entries) {
+      final items = entry.value.map((t) {
+        final hints = t.intents.isEmpty ? '' : ' (${t.intents.join(', ')})';
+        return '${t.name}$hints';
+      }).join('; ');
+      lines.add('- ${entry.key}: $items');
+    }
+    return lines.join('\n');
   }
 
   /// Final user section: chained-agent input plus the user prompt itself,

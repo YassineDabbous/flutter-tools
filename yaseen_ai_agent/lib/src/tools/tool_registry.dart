@@ -8,6 +8,13 @@ import 'tool.dart';
 class ToolRegistry {
   final Map<String, Tool> _tools = {};
 
+  /// Active domain groups advertised in the prompt for the current turn.
+  /// Null (default) means every registered tool is advertised. Execution
+  /// always resolves from the full set, so an unadvertised tool the model
+  /// calls anyway still runs — narrowing the prompt never removes
+  /// capability, it only focuses attention.
+  Set<String>? _activeGroups;
+
   /// This method should be called whenever developers make a new tool.
   /// It registers the tool in the registry.
   /// If you miss this step, the tool won't be available for use.
@@ -37,6 +44,31 @@ class ToolRegistry {
   /// It is used by prompt builders to list all available tools.
   List<Tool> getAllTools() {
     return _tools.values.toList();
+  }
+
+  /// Narrows the prompt to [groups] for the next turn(s). Pass null to
+  /// advertise everything again. Never affects execution: [getTool] always
+  /// resolves from the full set.
+  void setActiveGroups(Set<String>? groups) {
+    _activeGroups = groups == null || groups.isEmpty ? null : {...groups};
+  }
+
+  /// Clears any narrowing set via [setActiveGroups]: everything advertised.
+  void clearActiveGroups() => _activeGroups = null;
+
+  /// Currently active groups, or null when the full set is advertised.
+  Set<String>? get activeGroups =>
+      _activeGroups == null ? null : Set.unmodifiable(_activeGroups!);
+
+  /// Tools to render in the prompt: the active groups when narrowed,
+  /// otherwise the full set. Falls back to the full set when narrowing
+  /// would advertise nothing (unknown group key) — a turn must never show
+  /// zero tools.
+  List<Tool> getAdvertisedTools() {
+    final groups = _activeGroups;
+    if (groups == null) return getAllTools();
+    final advertised = _tools.values.where((t) => groups.contains(t.group));
+    return advertised.isEmpty ? getAllTools() : advertised.toList();
   }
 
   /// This method checks if a tool is registered in the registry.
