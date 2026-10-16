@@ -43,6 +43,13 @@ abstract class Config {
   String get sentryDSN =>
       'https://1bf27e832e4649c7a2014e8f919605cd@o964017.ingest.us.sentry.io/5912864';
 
+  /// Stripe publishable key (3DS step-up confirm only — guide §4). Publishable
+  /// keys are public by design; override per app/env. Null (default) disables
+  /// in-app 3DS confirm with a friendly message — redirect/SDK polling keeps
+  /// working. Long-term the backend should expose this via bootstrap
+  /// (`FINANCE_STRIPE_PUBLISHABLE_KEY` exists server-side but is not served).
+  String? get stripePublishableKey => null;
+
   // --- WebSocket (Pusher) ---
   String get pusherKey => '';
   String get pusherCluster => 'mt1';
