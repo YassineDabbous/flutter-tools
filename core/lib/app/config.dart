@@ -50,6 +50,18 @@ abstract class Config {
   /// (`FINANCE_STRIPE_PUBLISHABLE_KEY` exists server-side but is not served).
   String? get stripePublishableKey => null;
 
+  // --- Safety ---
+  /// Emergency dispatch number dialed by the ride safety toolkit SOS.
+  String get emergencyPhone => '197';
+
+  /// Support/report-issue destination for the safety toolkit.
+  String get supportUrl => 'https://rebelo.app/support';
+
+  /// Public trip-tracking URL template. `{uuid}` is replaced with the order
+  /// UUID; when null the toolkit shares the `rebelo://tracking/<uuid>` deep
+  /// link instead.
+  String? get trackingUrl => null;
+
   // --- WebSocket (Pusher) ---
   String get pusherKey => '';
   String get pusherCluster => 'mt1';
