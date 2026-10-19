@@ -29,6 +29,11 @@ abstract class Config {
   String get appName => 'no NAME';
   String get appVersionNumber => '1.0.0';
 
+  /// ISO-2 country code (e.g. `'TN'`) used to scope geocoder searches and any
+  /// other market-limited feature. Null (default) = unscoped worldwide
+  /// behavior.
+  String? get countryCode => null;
+
   // --- External Links ---
   String get kLinkAboutUs => 'http://www.yaseen.dev/';
   String get googlePlayIdentifier => 'googlePlayIdentifier  HERE';
