@@ -25,6 +25,11 @@ extension FileFieldDioX on FileField {
   }
 }
 
+/// Checked by `OfflineQueueInterceptor` via `RequestOptions.extra`
+/// (`packages/laravel_provider/lib/interceptors/offline_interceptor.dart`);
+/// bypassed requests fail fast instead of being replayed stale-later.
+const kNoOfflineQueueExtra = 'noOfflineQueue';
+
 Future<Response<Map<String, dynamic>>> superRequestTransform({
   required Dio dio,
   required String path,
@@ -32,6 +37,7 @@ Future<Response<Map<String, dynamic>>> superRequestTransform({
   String? baseUrl,
   Map<String, dynamic>? fieldsAndFiles,
   Map<String, dynamic>? queryParameters,
+  Map<String, dynamic>? extra,
 }) async {
   final Map<String, dynamic> fields = {};
   final List<FileField> files = [];
@@ -58,6 +64,7 @@ Future<Response<Map<String, dynamic>>> superRequestTransform({
     baseUrl: baseUrl,
     method: method,
     queryParameters: queryParameters,
+    extra: extra,
   );
 }
 
@@ -69,6 +76,7 @@ Future<Response<Map<String, dynamic>>> superRequest({
   Map<String, dynamic>? fields,
   Map<String, MultipartFile>? files,
   Map<String, dynamic>? queryParameters,
+  Map<String, dynamic>? extra,
 }) async {
   dynamic data;
   final isMultipart = (files != null && files.isNotEmpty);
@@ -99,6 +107,7 @@ Future<Response<Map<String, dynamic>>> superRequest({
         : method,
     contentType: isMultipart ? 'multipart/form-data' : 'application/json',
     responseType: ResponseType.json,
+    extra: extra,
   );
 
   return await dio.fetch<Map<String, dynamic>>(

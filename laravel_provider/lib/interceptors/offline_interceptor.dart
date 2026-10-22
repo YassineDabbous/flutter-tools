@@ -2,6 +2,10 @@ import 'dart:collection';
 import 'package:dio/dio.dart';
 import 'package:core/core.dart';
 
+/// Dio `Options.extra` key marking a request as never-queueable (e.g. GPS
+/// pings — replaying them later would push stale positions).
+const kNoOfflineQueueExtra = 'noOfflineQueue';
+
 class OfflineQueuedException implements Exception {
   final int queueSize;
   OfflineQueuedException({required this.queueSize});
@@ -17,6 +21,11 @@ class OfflineQueueInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (options.extra[kNoOfflineQueueExtra] == true) {
+      // Never-queue request (transient data) — send or drop, no replay.
+      return handler.next(options);
+    }
+
     final hasConnection = await Core.get<NetworkInfo>().isConnected;
 
     if (hasConnection) {

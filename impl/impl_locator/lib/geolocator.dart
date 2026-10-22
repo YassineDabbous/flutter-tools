@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:core/core.dart';
 import 'package:geolocator/geolocator.dart' as Geo;
 
@@ -55,7 +57,20 @@ class LocatorImpl implements Locator {
     // When we reach here, permissions are granted and we can
     // continue accessing the position of the device.
     final p = await Geo.Geolocator.getCurrentPosition();
-    print(p.toString());
     return Position(latitude: p.latitude, longitude: p.longitude);
+  }
+
+  /// ~10 m distance filter: fused provider wake-ups instead of a
+  /// `getCurrentPosition()` poll every tick (courier GPS publisher owns
+  /// the 5 s move-cap / 15 s stationary heartbeat).
+  static const _streamLocationSettings = Geo.LocationSettings(
+    distanceFilter: 10,
+  );
+
+  @override
+  Stream<Position> positionStream() {
+    return (Geo.Geolocator.getPositionStream(
+      locationSettings: _streamLocationSettings,
+    ).map((p) => Position(latitude: p.latitude, longitude: p.longitude)));
   }
 }

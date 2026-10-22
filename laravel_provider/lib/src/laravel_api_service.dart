@@ -19,7 +19,8 @@ import 'advanced_requests.dart';
 ///
 /// ID type defaults to [int] for Laravel.
 abstract class LaravelApiService<Model, ID>
-    implements BaseApiService<Model, Map<String, dynamic>, Map<String, dynamic>, ID> {
+    implements
+        BaseApiService<Model, Map<String, dynamic>, Map<String, dynamic>, ID> {
   final Dio dio;
   final String? baseUrl;
   final String? persona;
@@ -32,8 +33,7 @@ abstract class LaravelApiService<Model, ID>
 
   /// Segments prepended before [resource] / [suffixPath]. e.g. ['customer'].
   /// Defaults to `[persona!]` when [persona] is provided.
-  List<String> get pathSegments =>
-      persona != null ? [persona!] : const [];
+  List<String> get pathSegments => persona != null ? [persona!] : const [];
 
   /// Resource noun used by [callFunction] for the `type` field of ActionRequest.
   /// Defaults to [resource].
@@ -113,6 +113,7 @@ abstract class LaravelApiService<Model, ID>
     String? suffixPath,
     Map<String, dynamic>? body,
     Map<String, dynamic>? params,
+    Map<String, dynamic>? extra,
     required X Function(Map<String, dynamic>) fromJsonT,
   }) async {
     return handle(() async {
@@ -123,6 +124,7 @@ abstract class LaravelApiService<Model, ID>
         baseUrl: baseUrl,
         fieldsAndFiles: body,
         queryParameters: params,
+        extra: extra,
       );
       _throwOnErrorEnvelope(result.data, result.statusCode);
       return fromJsonT(result.data!);
