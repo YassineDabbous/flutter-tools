@@ -3,9 +3,25 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 class Position {
-  const Position({required this.longitude, required this.latitude});
+  const Position({
+    required this.longitude,
+    required this.latitude,
+    this.heading,
+    this.speed,
+    this.accuracy,
+  });
   final double latitude;
   final double longitude;
+
+  /// Course over ground in degrees (0-359.999) — meaningful only while
+  /// moving (`speed > ~1 m/s`); null/stale when stationary.
+  final double? heading;
+
+  /// Speed over ground in m/s.
+  final double? speed;
+
+  /// Position accuracy radius in meters.
+  final double? accuracy;
 }
 
 abstract class Locator {

@@ -57,7 +57,13 @@ class LocatorImpl implements Locator {
     // When we reach here, permissions are granted and we can
     // continue accessing the position of the device.
     final p = await Geo.Geolocator.getCurrentPosition();
-    return Position(latitude: p.latitude, longitude: p.longitude);
+    return Position(
+      latitude: p.latitude,
+      longitude: p.longitude,
+      heading: p.heading,
+      speed: p.speed,
+      accuracy: p.accuracy,
+    );
   }
 
   /// ~10 m distance filter: fused provider wake-ups instead of a
@@ -71,6 +77,14 @@ class LocatorImpl implements Locator {
   Stream<Position> positionStream() {
     return (Geo.Geolocator.getPositionStream(
       locationSettings: _streamLocationSettings,
-    ).map((p) => Position(latitude: p.latitude, longitude: p.longitude)));
+    ).map(
+      (p) => Position(
+        latitude: p.latitude,
+        longitude: p.longitude,
+        heading: p.heading,
+        speed: p.speed,
+        accuracy: p.accuracy,
+      ),
+    ));
   }
 }
