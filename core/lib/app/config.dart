@@ -29,6 +29,16 @@ abstract class Config {
   String get appName => 'no NAME';
   String get appVersionNumber => '1.0.0';
 
+  /// Per-app presentation of the planning experience (WO planner §2.2 —
+  /// white-label): `classic` keeps the per-archetype pages as the only entry
+  /// points; `unified` routes service taps to the additive
+  /// `ServicePlannerShell` (one full-map screen with per-archetype guests).
+  /// No screen forking — the same shared planning view backs both.
+  String get plannerPresentation => 'classic';
+
+  /// Convenience check for the unified shell presentation.
+  bool get unifiedPlanner => plannerPresentation == 'unified';
+
   /// ISO-2 country code (e.g. `'TN'`) used to scope geocoder searches and any
   /// other market-limited feature. Null (default) = unscoped worldwide
   /// behavior.
