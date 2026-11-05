@@ -95,8 +95,8 @@ class SessionDraftsStore {
   /// source). Best-effort — failures log, never throw.
   Future<void> setLastService(String zoneKey, String serviceKey) async {
     try {
+      await _ensureLastLoaded();
       _last[zoneKey] = serviceKey;
-      _lastLoaded = true;
       await prefs.set<Map<String, dynamic>>(lastKey, {
         for (final e in _last.entries) e.key: e.value,
       });
@@ -108,19 +108,38 @@ class SessionDraftsStore {
   /// The idle shell's restore candidate (null = never picked in this zone).
   Future<String?> takeLastService(String zoneKey) async {
     try {
-      if (!_lastLoaded) {
-        _lastLoaded = true;
-        final raw = prefs.get<Map<String, dynamic>>(lastKey);
-        if (raw != null) {
-          _last
-            ..clear()
-            ..addAll(raw.map((k, v) => MapEntry(k, v as String)));
-        }
-      }
+      await _ensureLastLoaded();
       return _last[zoneKey];
     } catch (e) {
       Object().logNet.warning('$logTag: take last failed: $e');
       return null;
+    }
+  }
+
+  /// Drops the idle-shell restore pointer for [zoneKey] — the zone's last
+  /// service is no longer a restore candidate (a completed order consumed
+  /// that service's session). Best-effort — failures log, never throw.
+  Future<void> clearLastService(String zoneKey) async {
+    try {
+      await _ensureLastLoaded();
+      if (_last.remove(zoneKey) == null) return;
+      await prefs.set<Map<String, dynamic>>(lastKey, {
+        for (final e in _last.entries) e.key: e.value,
+      });
+    } catch (e) {
+      Object().logNet.warning('$logTag: clear last failed: $e');
+    }
+  }
+
+  /// Sync-on-first-use hydration of the last-service mirror.
+  Future<void> _ensureLastLoaded() async {
+    if (_lastLoaded) return;
+    _lastLoaded = true;
+    final raw = prefs.get<Map<String, dynamic>>(lastKey);
+    if (raw != null) {
+      _last
+        ..clear()
+        ..addAll(raw.map((k, v) => MapEntry(k, v as String)));
     }
   }
 
