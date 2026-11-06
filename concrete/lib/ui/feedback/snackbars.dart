@@ -6,6 +6,35 @@ class AppSnackbars {
     _show(context, message, Colors.green, Icons.check_circle_outline);
   }
 
+  /// Success snackbar with an action (e.g. "View cart" after adding an item).
+  static void showSuccessWithAction(
+    BuildContext context, {
+    required String message,
+    required String actionLabel,
+    required VoidCallback onPressed,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(message, style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+        action: SnackBarAction(
+          label: actionLabel,
+          onPressed: onPressed,
+          textColor: Colors.white,
+        ),
+      ),
+    );
+  }
+
   static void showError(BuildContext context, String message) {
     _show(context, message, Colors.red, Icons.error_outline);
   }
