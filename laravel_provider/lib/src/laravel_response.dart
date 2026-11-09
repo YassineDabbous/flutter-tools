@@ -1,7 +1,7 @@
 import 'package:skeleton/skeleton.dart';
 
 class BasicResponse<T> extends ApiResponse<T> {
-  final int? code;
+  final String? code;
   final Map<String, dynamic>? validation;
 
   BasicResponse({
@@ -18,7 +18,7 @@ class BasicResponse<T> extends ApiResponse<T> {
   ) {
     final map = json as Map<String, dynamic>;
     return BasicResponse<T>(
-      code: map['code'] as int?,
+      code: map['code'] as String?,
       message: map['message'] as String?,
       error: map['error'] as String?,
       validation: map['validation'] as Map<String, dynamic>?,
