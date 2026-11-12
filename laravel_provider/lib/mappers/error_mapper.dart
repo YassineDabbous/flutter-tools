@@ -27,56 +27,52 @@ class LaravelErrorMapper {
     if (response != null) {
       final data = response.data;
       final basicResponse = BasicResponseParser.tryParse(data);
+      final msg = basicResponse?.error ?? basicResponse?.message;
+      final code = basicResponse?.code;
 
       if (response.statusCode == 401) {
         Object().logNet.warning('Auth failure: 401');
-        return const AuthFailure();
+        return AuthFailure(msg ?? 'Authentication failed.', code);
       }
       if (response.statusCode == 403) {
         // Prefer the `error` field: gates return `{"error": "...", "data":
         // {"code": "KYC_REQUIRED"|...}}` with no `message` (previously this
         // fell through to null → generic). Still user-facing text only —
         // `_friendlyMessage` strips anything technical downstream.
-        final msg =
-            basicResponse?.error ?? basicResponse?.message ?? 'Forbidden';
-        Object().logNet.warning('Permission denied: $msg');
-        return PermissionFailure(msg);
+        final errorMsg = msg ?? 'Forbidden';
+        Object().logNet.warning('Permission denied: $errorMsg (code: $code)');
+        return PermissionFailure(errorMsg, code);
       }
       if (response.statusCode == 404) {
-        final msg = basicResponse?.error ?? basicResponse?.message;
-        Object().logNet.warning('Not found: ${response.realUri} ($msg)');
-        return NotFoundFailure(msg);
+        Object().logNet.warning('Not found: ${response.realUri} ($msg, code: $code)');
+        return NotFoundFailure(msg, code);
       }
       if (response.statusCode == 422) {
         Object().logNet.warning(
-          'Validation failure: ${basicResponse?.message}',
+          'Validation failure: ${basicResponse?.message} (code: $code)',
         );
         return ValidationFailure(
           errors: basicResponse?.validation ?? {},
           message: basicResponse?.message,
+          code: code,
         );
       }
       if (response.statusCode == 409) {
-        final msg = basicResponse?.error ?? basicResponse?.message;
-        Object().logNet.warning('Conflict: $msg');
-        return ConflictFailure(msg);
+        Object().logNet.warning('Conflict: $msg (code: $code)');
+        return ConflictFailure(msg, code);
       }
 
       if (response.statusCode! >= 500) {
-        final msg =
-            basicResponse?.error ?? basicResponse?.message ?? 'Server error';
-        Object().logNet.error('Server error ($msg)');
-        return ServerFailure(msg);
+        final errorMsg = msg ?? 'Server error';
+        Object().logNet.error('Server error ($errorMsg, code: $code)');
+        return ServerFailure(errorMsg, code);
       }
 
       if (response.statusCode! >= 400) {
-        final msg =
-            basicResponse?.error ??
-            basicResponse?.message ??
-            dioError.message ??
-            'Server error';
-        Object().logNet.error('Client error ($msg)');
-        return ServerFailure(msg);
+        final errorMsg =
+            msg ?? dioError.message ?? 'Server error';
+        Object().logNet.error('Client error ($errorMsg, code: $code)');
+        return ServerFailure(errorMsg, code);
       }
     }
 

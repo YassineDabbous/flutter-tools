@@ -136,8 +136,11 @@ abstract class LaravelApiService<Model, ID>
   /// success (which would silently produce empty/null payloads).
   void _throwOnErrorEnvelope(Map<String, dynamic>? data, int? statusCode) {
     final error = data?['error'];
+    final code = data?['code'] as String?;
     if (error is String && error.trim().isNotEmpty) {
-      throw statusCode == 404 ? NotFoundFailure(error) : ServerFailure(error);
+      throw statusCode == 404
+          ? NotFoundFailure(error, code)
+          : ServerFailure(error, code);
     }
   }
 
