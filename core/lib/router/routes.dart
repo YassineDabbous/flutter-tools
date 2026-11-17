@@ -6,7 +6,7 @@ abstract class R {
 
   // --- Core Application Routes ---
   /// The root path of the main application content.
-  final String contentRootRoute = '/';
+  final String rootRoute = '/';
   final String homeRoute = '/home';
   final String onboardingRoute = '/onboarding';
 
@@ -61,14 +61,13 @@ abstract class R {
   // --- Redirection and Guards ---
 
   /// The default path to navigate to after a successful login.
-  String get redirectAfterLogin =>
-      '$homeRoute?r=${DateTime.now().millisecondsSinceEpoch}';
+  Future<String> get redirectAfterLogin async => '$homeRoute?r=${DateTime.now().millisecondsSinceEpoch}';
 
   /// The default path to redirect to after a soft logout.
-  String get redirectAfterLogout => login();
+  Future<String> get redirectAfterLogout async => login();
 
   /// The default path to redirect to after a hard/forced logout.
-  String get redirectAfterHardLogout => login();
+  Future<String> get redirectAfterHardLogout async => login();
 
   /// List of routes accessible to unauthenticated (guest) users.
   List<String> get guest => [

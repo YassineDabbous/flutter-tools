@@ -10,7 +10,7 @@ class AppWrapper extends StatelessWidget {
   const AppWrapper({super.key, required this.child});
 
   /// Handles global authentication state changes and triggers mandatory navigation.
-  void listener(BuildContext context, AuthenticationState state) {
+  void listener(BuildContext context, AuthenticationState state) async {
     logAuth.info('APPWRAPPER state ${state.runtimeType}');
     final navPath = Core.nav.path;
     final R routes = Core.get<R>();
@@ -18,7 +18,8 @@ class AppWrapper extends StatelessWidget {
     if (state is AuthenticationAuthenticated) {
       // If authenticated and currently on a route meant for guests (login, register, etc.).
       if (routes.guest.contains(navPath) || navPath == routes.accounts()) {
-        logAuth.info('Redirecting to: ${routes.redirectAfterLogin}');
+        final destination = await routes.redirectAfterLogin;
+        logAuth.info('Redirecting to: $destination');
         Core.get<I>().activate(
           user: state.auth,
         ); // Activate app services ('I' is the Initializer abstract class)
@@ -26,7 +27,7 @@ class AppWrapper extends StatelessWidget {
           (r) => r.isFirst,
         ); // Clear the navigation history stack
         Core.nav.navigate(
-          routes.redirectAfterLogin,
+          destination,
         ); // Redirect to the authenticated home path
       }
     } else if (state is AuthenticationLogout) {
@@ -38,7 +39,7 @@ class AppWrapper extends StatelessWidget {
         logAuth.info(
           'Redirecting to soft logout: ${routes.redirectAfterLogout}',
         );
-        Core.nav.pushReplacement(routes.redirectAfterLogout);
+        Core.nav.pushReplacement(await routes.redirectAfterLogout);
       }
     } else if (state is AuthenticationLogoutHard) {
       // Hard logout from all saved profiles (all tokens cleared).
@@ -49,7 +50,7 @@ class AppWrapper extends StatelessWidget {
         logAuth.info(
           'Redirecting to hard logout: ${routes.redirectAfterHardLogout}',
         );
-        Core.nav.pushReplacement(routes.redirectAfterHardLogout);
+        Core.nav.pushReplacement(await routes.redirectAfterHardLogout);
       }
     } else {
       throw UnimplementedError(
@@ -61,11 +62,11 @@ class AppWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (Core.get<AuthLocalManager>().check()) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
         final navPath = Core.nav.path;
         final routes = Core.get<R>();
         if (routes.guest.contains(navPath)) {
-          Core.nav.pushReplacement(routes.redirectAfterLogin);
+          Core.nav.pushReplacement(await routes.redirectAfterLogin);
         }
       });
     }

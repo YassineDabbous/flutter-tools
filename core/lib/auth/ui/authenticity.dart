@@ -38,20 +38,20 @@ class _AuthenticityState
 
   /// Listener for the 'hard' enforcement mode. This mode forces navigation
   /// away from protected or guest-only routes based on the current auth state.
-  void listenerHard(BuildContext context, AuthCheckerState state) {
+  void listenerHard(BuildContext context, AuthCheckerState state) async {
     isGuestPath = Core.get<R>().isGuestPath(Core.nav.path);
 
     if (state is AuthIdentified) {
       // If user is logged in and on a guest-only route (e.g., /login), redirect to home.
       if (isGuestPath) {
-        Core.nav.pushReplacement(Core.get<R>().redirectAfterLogin);
+        Core.nav.pushReplacement(await Core.get<R>().redirectAfterLogin);
       }
     } else if (state is AuthNotIdentified) {
       // If user is logged out and on a protected route, redirect to the appropriate logout page.
       if (!isGuestPath) {
-        final redirectRoute = state.hard
+        final redirectRoute = await (state.hard
             ? Core.get<R>().redirectAfterHardLogout
-            : Core.get<R>().redirectAfterLogout;
+            : Core.get<R>().redirectAfterLogout);
         Core.nav.pushReplacement(redirectRoute);
       }
     } else if (state is AuthCheckingFailure) {
